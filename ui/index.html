@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Job Search</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎯%3C/text%3E%3C/svg%3E">
 <style>
   :root { --bg:#f6f6f3; --card:#fff; --text:#1c1c1a; --muted:#66665f; --line:#e2e2dc; --accent:#1f5fbf; --accent-text:#fff;
           --warn:#a04a00; --warn-bg:#fdf0d5; --ok:#17653a; --ok-bg:#dcf5e5; --off:#66665f; --off-bg:#ebebe6; }
@@ -69,6 +70,7 @@
   <h1>Job Search</h1>
   <span class="pill closed" id="role-badge">loading</span>
   <span class="spacer"></span>
+  <span class="muted small" id="sync" aria-live="polite"></span>
   <button class="btn" id="refresh">Refresh</button>
 </header>
 <nav role="tablist" aria-label="Sections" id="nav"></nav>
@@ -229,12 +231,15 @@ function viewPipeline() {
 }
 
 /* ---------- document reader shared by Applications and Prep ---------- */
+const docCache = new Map();        // path -> last html shown, so a refresh does not flash or jump
 function docPane(path) {
-  const pane = el("div", { class: "doc" }, el("p", { class: "muted" }, "Loading…"));
+  const pane = el("div", { class: "doc" });
+  const show = d => pane.replaceChildren(el("div", { html: d.html || "<p class='muted'>This file is empty.</p>" }),
+                                         el("p", { class: "muted small" }, d.path));
+  if (docCache.has(path)) show(docCache.get(path)); else pane.append(el("p", { class: "muted" }, "Loading…"));
   api("/api/file?path=" + encodeURIComponent(path))
-    .then(d => pane.replaceChildren(el("div", { html: d.html || "<p class='muted'>This file is empty.</p>" }),
-                                    el("p", { class: "muted small" }, d.path)))
-    .catch(error => pane.replaceChildren(el("p", { class: "muted" }, error.message)));
+    .then(d => { const old = docCache.get(path); docCache.set(path, d); if (!old || old.html !== d.html) show(d); })
+    .catch(error => { docCache.delete(path); pane.replaceChildren(el("p", { class: "muted" }, error.message)); });
   return pane;
 }
 
@@ -335,6 +340,7 @@ function viewTools() {
       archiveResult.replaceChildren(el("div", { class: "card" }, el("pre", {}, r.report.join("\n")),
         el("p", { class: "muted small", style: "margin-top:8px" }, apply ? "Done." : "Preview only. Nothing has changed yet.")));
       applyButton.disabled = apply;
+      ui.previewOpen = !apply;
       if (apply) load();
     } catch (error) { archiveResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
   }
@@ -360,18 +366,62 @@ const VIEWS = { start: viewStart, pipeline: viewPipeline, applications: viewAppl
 function render() {
   if (!VIEWS[ui.tab]) ui.tab = "start";
   document.querySelector("#nav").replaceChildren(...TABS.map(([id, label]) =>
-    el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; history.replaceState(null, "", "#" + id); render(); } }, label)));
+    el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; ui.previewOpen = false; history.replaceState(null, "", "#" + id); render(); } }, label)));
   document.querySelector("#role-badge").textContent = S.roles.length ? S.roles.join(" · ") : "No roles yet";
   document.querySelector("#main").replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
 }
 
+function rolesDirty() { return !!(draftRoles && S && JSON.stringify(draftRoles) !== JSON.stringify(S.roles)); }
+
 async function load() {
-  try { S = await api("/api/state"); render(); }
-  catch (error) {
+  try {
+    const next = await api("/api/state");
+    if (!rolesDirty()) draftRoles = null;       // pick up a role list changed outside the page
+    S = next;
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+    setSync("Up to date · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+  } catch (error) {
+    S = null;
     document.querySelector("#main").replaceChildren(el("div", { class: "notice" },
-      "Cannot reach the dashboard. Start it again with: python3 scripts/app.py (" + error.message + ")"));
+      "Cannot reach the dashboard. Start it again from the start/ folder, or with: python3 scripts/app.py (" + error.message + ")"));
+    setSync("Disconnected");
   }
 }
+
+/* ---------- automatic refresh ---------- */
+function setSync(text) { document.querySelector("#sync").textContent = text; }
+
+// Reasons not to redraw under the user: unsaved roles, typing in a field, or an archive preview waiting.
+function pauseReason() {
+  if (rolesDirty()) return "unsaved roles";
+  if (ui.previewOpen) return "archive preview open";
+  const active = document.activeElement;
+  if (active && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName) && active.type !== "checkbox") return "you are typing";
+  return "";
+}
+
+let checking = false;
+async function checkForChanges() {
+  if (document.hidden || checking) return;
+  checking = true;
+  try {
+    const response = await fetch("/api/version");
+    const { version } = await response.json();
+    if (!S) await load();                                   // reconnect after the dashboard was restarted
+    else if (version !== S.version) {
+      const reason = pauseReason();
+      if (reason) setSync("New changes, paused (" + reason + ")");
+      else await load();
+    }
+  } catch { setSync("Disconnected"); }
+  checking = false;
+}
+setInterval(checkForChanges, 4000);
+document.addEventListener("visibilitychange", checkForChanges);
+window.addEventListener("focus", checkForChanges);
+
 document.querySelector("#refresh").addEventListener("click", load);
 load();
 </script>

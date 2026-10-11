@@ -11,6 +11,7 @@ Stop it with Ctrl+C. Needs Python 3.8+ and nothing else.
 """
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import secrets
@@ -126,6 +127,23 @@ def roles_tailored():
     return "###" in exercises
 
 
+def fingerprint():
+    """Changes whenever a file the dashboard shows is added, removed or edited."""
+    files = [ROOT / "AGENTS.md"]
+    for top in READABLE:
+        files += (ROOT / top).rglob("*.md")
+    files += (OUTPUT / "resume").rglob("*.pdf")
+    files.append(ROOT / "profile" / "linkedin-export.pdf")
+    digest = hashlib.sha1()
+    for path in sorted(files):
+        try:
+            info = path.stat()
+        except OSError:
+            continue
+        digest.update(f"{path.relative_to(ROOT).as_posix()}|{info.st_mtime_ns}|{info.st_size}\n".encode())
+    return digest.hexdigest()[:16]
+
+
 def company_folders():
     return sorted(p for p in APPLICATIONS.glob("*") if p.is_dir() and not p.name.startswith("_"))
 
@@ -195,6 +213,7 @@ def state():
     questions = [{"company": f.name, "html": render_md(read(f"applications/{f.name}/interview-notes.md"))}
                  for f in company_folders() if (f / "interview-notes.md").exists()]
     return {
+        "version": fingerprint(),
         "roles": target_roles(),
         "versions": resume.role_versions(),
         "setup": setup_checklist(),
@@ -271,6 +290,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, PAGE.read_text(encoding="utf-8").replace("__TOKEN__", TOKEN), "text/html; charset=utf-8")
         elif url.path == "/api/state":
             self.json(200, state())
+        elif url.path == "/api/version":
+            self.json(200, {"version": fingerprint()})
         elif url.path == "/api/file":
             path = safe_md(parse_qs(url.query).get("path", [""])[0])
             if path:

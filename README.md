@@ -81,7 +81,7 @@ If the launcher does not start:
 | **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
 
-The page reads your files and shows them. The coaching itself still happens in your AI tool: you type a keyword there, it updates the files, and you press **Refresh** here. To change a document, edit the file or ask the AI.
+The page reads your files and shows them. The coaching itself still happens in your AI tool: you type a keyword there, it updates the files, and the page picks up the change within a few seconds, or as soon as you switch back to it. It holds off while you are typing, have unsaved roles, or have an archive preview open, and says so next to the **Refresh** button. To change a document, edit the file or ask the AI.
 
 ## Your target roles
 
