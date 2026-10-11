@@ -11,6 +11,7 @@ If Python is not available, read `applications/PIPELINE.md` and print the same s
 
 ## The table format the script expects
 
-- The header row starts with `Company` and keeps these columns: Company, Role, Stage, Applied, Last contact, Next action, Due, Source.
+- The header row starts with `Company` and keeps these columns: Company, Role, Stage, Furthest, Applied, Last contact, Next action, Due, Source.
 - Dates are `YYYY-MM-DD`.
-- Stage is one of: Drafted, Applied, Screen, Technical, Final, Offer, Rejected, Withdrawn, No reply.
+- Stage is one of: Drafted, Applied, Screen, Interview, Final, Offer, Rejected, Withdrawn, No reply.
+- Furthest is blank while a row is open. When you close a row (Rejected, Withdrawn, No reply), write the stage it had reached there, so the progress totals keep the interview or offer.

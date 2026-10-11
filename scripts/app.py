@@ -20,7 +20,7 @@ import secrets
 import sys
 import urllib.request
 import webbrowser
-from datetime import date, timedelta
+from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -41,27 +41,26 @@ INSTANCE = hashlib.sha1(str(ROOT).encode()).hexdigest()[:12]  # tells two repos'
 DEFAULT_PORT = 8765
 EXERCISES_HEADING = "## Exercises"  # in modes/practice.md; the `roles` keyword writes below it
 
-ROLES_TEMPLATE = """# Target Roles
+# The role list sits between two marker lines, so saving it never touches anything else in the file.
+ROLES_START, ROLES_END = "<!-- roles:start -->", "<!-- roles:end -->"
+ROLES_TEMPLATE = f"""# Target Roles
 
 The job titles I am applying for, one per line. The first is my primary target.
 Edit this list on the dashboard's Start tab or right here, then type `roles` in the AI tool.
-"""
+Keep the two marker lines. Anything outside them is yours and is never changed.
 
-PREP_DOCS = [
-    ("Profile", "profile/profile.md"),
-    ("Master resume", "profile/resume.md"),
-    ("Gaps", "progress/weak-spots.md"),
-    ("Practice exercise", "modes/practice.md"),
-    ("Screening rubric", "applications/SCREENING-RUBRIC.md"),
-    ("LinkedIn text", "profile/linkedin-profile.md"),
-]
+{ROLES_START}
+{ROLES_END}
+"""
+NO_ROLE_YET = "- [add a role, e.g. Frontend Engineer]"
 
 
 # ---------- reading: every function takes the data root, so the example reuses the same code ----------
 
 def read(root, relative):
+    """A file's text, or "" if it is missing. Bytes that are not valid UTF-8 are shown as \ufffd."""
     path = root / relative
-    return path.read_text(encoding="utf-8") if path.exists() else ""
+    return path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
 
 
 def safe_md(root, relative):
@@ -75,10 +74,26 @@ def company_folders(root):
     return sorted(p for p in (root / "applications").glob("*") if p.is_dir() and not p.name.startswith("_"))
 
 
+def roles_block(lines):
+    """(first, last) line indexes of the role list: between the markers, or the first run of bullets."""
+    if ROLES_START in lines and ROLES_END in lines[lines.index(ROLES_START):]:
+        start = lines.index(ROLES_START)
+        return start + 1, lines.index(ROLES_END, start)
+    bullets = [i for i, line in enumerate(lines) if line.startswith("- ")]
+    if not bullets:
+        return len(lines), len(lines)
+    end = bullets[0]
+    while end < len(lines) and (lines[end].startswith("- ") or lines[end][:1] in (" ", "\t")):
+        end += 1  # a run of bullets, each with any indented lines under it
+    return bullets[0], end
+
+
 def target_roles(root):
     """The roles listed in profile/roles.md, ignoring the placeholder line."""
-    lines = [line[2:].strip() for line in read(root, "profile/roles.md").splitlines() if line.startswith("- ")]
-    return [line for line in lines if line and not line.startswith("[")]
+    lines = read(root, "profile/roles.md").splitlines()
+    first, last = roles_block(lines)
+    roles = [line[2:].strip() for line in lines[first:last] if line.startswith("- ")]
+    return [role for role in roles if role and not role.startswith("[")]
 
 
 def today_for(root):
@@ -103,20 +118,31 @@ def pipeline_state(root):
 
 
 def progress_stats(root):
-    """Totals for the Progress tab, counted over current and archived applications."""
+    """Totals for the Progress tab, one count per application, over current and archived rows.
+
+    A row counts as an interview or an offer by the furthest stage it reached, which a closed
+    row keeps in its Furthest column. A company folder with interview notes adds one more when
+    no row for that company is already counted, in case the column was never filled in.
+    """
     rows = []
     for relative in ("applications/PIPELINE.md", "applications/_archive/PIPELINE-ARCHIVE.md"):
         try:
             rows += pipeline_rows(root, relative)
         except pipeline.PipelineError:
             pass
-    # An interview was reached if the row is at an interview stage now, or interview notes exist.
-    # The notes survive a later rejection and archiving, so the count never goes down.
-    interviewed = {slug(r["company"]) for r in rows if r["stage"] in pipeline.INTERVIEW_STAGES}
-    interviewed |= {slug(f.name) for f in company_folders(root) if (f / "interview-notes.md").exists()}
-    return {"applied": sum(1 for r in rows if r["stage"] != "Drafted"),
-            "interviews": len(interviewed),
-            "offers": sum(1 for r in rows if r["stage"] == "Offer")}
+
+    def same_company(name, folder):  # "Acme Inc." matches the folder "acme", and the other way round
+        return name == folder or name.startswith(folder + "-") or folder.startswith(name + "-")
+
+    interviewed = [r for r in rows if r["furthest"] in pipeline.INTERVIEW_STAGES]
+    from_notes = 0
+    for folder in company_folders(root):
+        if (folder / "interview-notes.md").exists() and \
+                not any(same_company(slug(r["company"]), slug(folder.name)) for r in interviewed):
+            from_notes += 1
+    return {"applied": sum(1 for r in rows if r["stage"] in pipeline.STAGES and r["stage"] != "Drafted"),
+            "interviews": len(interviewed) + from_notes,
+            "offers": sum(1 for r in rows if r["furthest"] == "Offer")}
 
 
 def section(text, heading):
@@ -156,6 +182,35 @@ def setup_checklist(root):
         {"id": "applied", "done": bool(pipeline_state(root)["rows"]),
          "text": "Apply to your first posting", "hint": "Type apply: [company] in your AI tool and paste the posting"},
     ]
+
+
+def prep_docs(root):
+    """Documents for the Prep tab. `ready` is False while a file is still the empty template."""
+    profile = clean_markdown(read(root, "profile/profile.md"))
+    master = read(root, "profile/resume.md")
+    rubric = read(root, "applications/SCREENING-RUBRIC.md")
+    gaps = read_table(clean_markdown(read(root, "progress/weak-spots.md")))[1]
+    exercises = clean_markdown(read(root, "modes/practice.md")).split(EXERCISES_HEADING)[-1]
+    linkedin = clean_markdown(read(root, "profile/linkedin-profile.md"))
+    docs = [
+        ("Profile", "profile/profile.md", UNFILLED not in profile.split("## Verified experience")[0],
+         "Your verified experience and the claims you must not inflate. Filled in by setup and audit."),
+        ("Master resume", "profile/resume.md", bool(master) and RESUME_PLACEHOLDER not in master,
+         "Your full resume, the source for every other version. Built by setup."),
+        ("Gap list", "progress/weak-spots.md", any(any(cells) for cells in gaps),
+         "Skills that real postings and interviews showed you are missing, ranked. Filled in as you apply."),
+        ("Practice exercises", "modes/practice.md", "###" in exercises,
+         "One live exercise per target role. Written by the roles keyword."),
+        ("Screening rubric", "applications/SCREENING-RUBRIC.md", "[amount]" not in rubric and UNFILLED not in rubric,
+         "Your rules for deciding in two minutes whether to apply. Filled in during setup."),
+        ("LinkedIn text", "profile/linkedin-profile.md", bool(section(linkedin, "Headline").strip()),
+         "The text currently on your LinkedIn profile. Filled in by setup, updated by linkedin sync."),
+    ]
+    found = [{"title": title, "path": path, "ready": bool(ready), "about": about,
+              "section": "Exercises" if path == "modes/practice.md" else ""}
+             for title, path, ready, about in docs if (root / path).exists()]
+    return found + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md", "ready": True,
+                     "about": "", "section": ""} for name in resume.role_versions(root / "profile" / "resumes")]
 
 
 def practice_log(root):
@@ -199,8 +254,7 @@ def state(root=ROOT):
         apps.append({"name": folder.name,
                      "files": sorted(p.name for p in folder.glob("*.md")),
                      "pdf": f"output/resume/companies/{folder.name}/{exported[-1].name}" if exported else ""})
-    _, entries = archive.split_log(read(root, "progress/daily-log.md"))
-    entries.sort(key=lambda e: e[0], reverse=True)
+    entries = sorted(archive.log_entries(read(root, "progress/daily-log.md")), key=lambda e: e[0], reverse=True)
     questions = [{"company": f.name, "html": render_md(read(root, f"applications/{f.name}/interview-notes.md"))}
                  for f in company_folders(root) if (f / "interview-notes.md").exists()]
     return {
@@ -215,8 +269,7 @@ def state(root=ROOT):
         "pipeline": pipeline_state(root),
         "progress": progress_stats(root),
         "applications": apps,
-        "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (root / path).exists()]
-                + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md"} for name in versions],
+        "prep": prep_docs(root),
         "questions": questions,
         "stories": stories_state(root),
         "practice": practice_log(root),
@@ -229,10 +282,10 @@ def state(root=ROOT):
 
 # ---------- writing: always the user's own files, never the example ----------
 
-def save_roles(roles):
-    """Replace the role list in profile/roles.md, keeping any other text in the file.
+def save_roles(roles, target=None):
+    """Replace the role list in profile/roles.md and leave the rest of the file exactly as it is.
 
-    Returns the cleaned list, or raises ValueError.
+    Indented lines under a role that is kept stay with it. Returns the cleaned list, or raises ValueError.
     """
     if not isinstance(roles, list):
         raise ValueError("roles must be a list")
@@ -245,19 +298,25 @@ def save_roles(roles):
     if len(cleaned) > 8:
         raise ValueError("Keep it to 8 roles or fewer. A focused search works better.")
 
-    target = ROOT / "profile" / "roles.md"
-    lines = (target.read_text(encoding="utf-8") if target.exists() else ROLES_TEMPLATE).splitlines()
-    listed = [i for i, line in enumerate(lines) if line.startswith("- ")]
-    if listed:
-        before, after = lines[:listed[0]], lines[listed[-1] + 1:]
-        after = [line for line in lines[listed[0]:listed[-1]] if line.strip() and not line.startswith("- ")] + after
-    else:
-        before, after = lines, []
-    while before and not before[-1].strip():
-        before.pop()
-    items = [f"- {role}" for role in cleaned] or ["- [add a role, e.g. Frontend Engineer]"]
+    target = target or ROOT / "profile" / "roles.md"
+    text = target.read_text(encoding="utf-8", errors="replace") if target.exists() else ROLES_TEMPLATE
+    lines = text.splitlines()
+    first, last = roles_block(lines)
+    notes, current = {}, None  # indented lines under each existing role
+    for line in lines[first:last]:
+        if line.startswith("- "):
+            current = line[2:].strip().lower()
+        elif current and line.strip():
+            notes.setdefault(current, []).append(line)
+    block = []
+    for role in cleaned:
+        block.append(f"- {role}")
+        block += notes.get(role.lower(), [])
+    block = block or [NO_ROLE_YET]
+    if ROLES_START not in lines[:first]:  # a file written by hand: add the markers around its list
+        block = [ROLES_START] + block + [ROLES_END]
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text("\n".join(before + [""] + items + after).rstrip() + "\n", encoding="utf-8")
+    target.write_text("\n".join(lines[:first] + block + lines[last:]).rstrip() + "\n", encoding="utf-8")
     return cleaned
 
 
@@ -279,12 +338,9 @@ def do_action(path, body):
             return 400, {"error": str(error)}
     if path == "/api/archive":
         try:
-            days = max(1, int(body.get("days", 30)))
-        except (TypeError, ValueError):
-            return 400, {"error": "days must be a number"}
-        cutoff, apply = date.today() - timedelta(days=days), bool(body.get("apply"))
-        return 200, {"applied": apply,
-                     "report": archive.archive_log(cutoff, apply) + archive.archive_pipeline(cutoff, apply)}
+            return 200, archive.run(body.get("days", 30), bool(body.get("apply")))
+        except (TypeError, ValueError, OverflowError):
+            return 400, {"error": "Days must be a whole number."}
     return 404, {"error": "Not found"}
 
 
@@ -312,7 +368,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(403, {"error": "Forbidden"})
         return False
 
+    def guarded(self, handle):
+        """Run a request handler; report any failure to the page instead of dropping the connection."""
+        try:
+            handle()
+        except Exception as error:  # the page shows this message, so the user is not told to restart
+            try:
+                self.send_json(500, {"error": f"{type(error).__name__}: {error}"})
+            except OSError:
+                pass
+
     def do_GET(self):
+        self.guarded(self.handle_get)
+
+    def do_POST(self):
+        self.guarded(self.handle_post)
+
+    def handle_get(self):
         if not self.local_only():
             return
         url = urlparse(self.path)
@@ -330,8 +402,11 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/api/file":
             path = safe_md(root, query.get("path", [""])[0])
             if path:
-                self.send_json(200, {"path": path.relative_to(root.resolve()).as_posix(),
-                                     "html": render_md(path.read_text(encoding="utf-8"))})
+                text = clean_markdown(path.read_text(encoding="utf-8", errors="replace"))
+                heading = "## " + query.get("section", [""])[0]
+                if heading != "## " and heading in text:
+                    text = text.split(heading, 1)[1]
+                self.send_json(200, {"path": path.relative_to(root.resolve()).as_posix(), "html": render_md(text)})
             else:
                 self.send_json(404, {"error": "File not found"})
         elif url.path.startswith("/output/"):
@@ -344,7 +419,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send_json(404, {"error": "Not found"})
 
-    def do_POST(self):
+    def handle_post(self):
         if not self.local_only():
             return
         if self.headers.get("X-Token") != TOKEN:
@@ -358,8 +433,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def already_running(port):
     """True if a dashboard for this same folder is answering on the port."""
+    direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # never through a proxy
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/ping", timeout=1) as response:
+        with direct.open(f"http://127.0.0.1:{port}/api/ping", timeout=2) as response:
             return json.loads(response.read()).get("instance") == INSTANCE
     except (OSError, ValueError):
         return False
@@ -371,23 +447,20 @@ def main():
     parser.add_argument("--no-open", action="store_true", help="do not open a browser")
     args = parser.parse_args()
 
-    # A second launch opens the dashboard that is already running rather than starting another.
     ports = [args.port] if args.port != DEFAULT_PORT else list(range(DEFAULT_PORT, DEFAULT_PORT + 10))
-    for port in ports:
-        if already_running(port):
-            address = f"http://127.0.0.1:{port}/"
-            print(f"The dashboard is already running at {address}")
-            if not args.no_open:
-                webbrowser.open(address)
-            return
-
     server = None
     for port in ports:
         try:
             server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
             break
         except OSError:
-            continue
+            # The port is taken. If it is this folder's dashboard, open that one and stop here.
+            if already_running(port):
+                address = f"http://127.0.0.1:{port}/"
+                print(f"The dashboard is already running at {address}")
+                if not args.no_open:
+                    webbrowser.open(address)
+                return
     if server is None:
         sys.exit(f"Could not start on port {args.port}. Try: python3 scripts/app.py --port 9000")
 

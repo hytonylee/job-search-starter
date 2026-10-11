@@ -5,6 +5,8 @@ rem Close this window, or press Ctrl+C in it, to stop the dashboard.
 
 cd /d "%~dp0.."
 
+if not exist scripts\app.py goto missing
+
 rem Run a one-line check instead of trusting "where": the Microsoft Store
 rem placeholder named python.exe exists on PATH but is not Python.
 rem The check is written without angle brackets, which batch files treat as redirection.
@@ -25,6 +27,12 @@ echo Python 3.8 or newer was not found.
 echo Install it from https://www.python.org/downloads/
 echo During the install, tick "Add python.exe to PATH".
 echo Then double-click this file again.
+goto done
+
+:missing
+echo This launcher cannot find the rest of the project.
+echo Keep it inside the project's start folder. If you downloaded a ZIP,
+echo unzip the whole folder first, then double-click this file again.
 
 :done
 echo.

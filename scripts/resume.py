@@ -170,7 +170,7 @@ def export_resume(company=None, paper="letter", file=None, role=None):
         raise ExportError(f"Resume not found: {display_path(source)}")
     raw = source.read_text(encoding="utf-8")
     if RESUME_PLACEHOLDER in raw:
-        raise ExportError(f"{display_path(source)} is still the placeholder. Run `setup` first.")
+        raise ExportError(f"{display_path(source)} is still the empty template. Type `setup` in your AI tool first.")
 
     markdown = clean_markdown(raw)
     title = re.search(r"^#\s+(.+)$", markdown, flags=re.M)

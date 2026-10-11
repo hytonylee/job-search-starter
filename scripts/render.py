@@ -37,6 +37,7 @@ def inline(text):
     text = html.escape(text, quote=False)
     text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
     text = re.sub(r"\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)", link, text)  # url may hold one level of ( )
+    text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", text)
     text = re.sub(r"(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)", r"<em>\1</em>", text)
@@ -58,7 +59,9 @@ def to_html(markdown):
 
     for line in markdown.splitlines():
         heading = re.match(r"^(#{1,4})\s+(.*)$", line)
-        item = re.match(r"^(\s*)([-*+]|(\d+)[.)])\s+(.*)$", line)
+        item = re.match(r"^(\s*)([-*+]|(\d{1,3})[.)])\s+(.*)$", line)  # up to 3 digits, so "2019. " is prose
+        if item and item.group(3) and item.group(3) != "1" and paragraph:
+            item = None  # only "1." may interrupt a paragraph, as in standard Markdown
         if not line.strip():
             flush()
             close_lists()

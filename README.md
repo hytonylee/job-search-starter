@@ -125,12 +125,12 @@ If the launcher does not start:
 
 | Tab | What you see |
 |---|---|
-| **Start** | The onboarding button (it shows where this folder is on your computer, how to open it in your AI tool, and the first message to paste), your target roles, and a setup checklist that ticks itself off |
+| **Start** | The onboarding button (it explains how to get an AI tool, shows where this folder is on your computer and how to open it, and gives the first message to paste), a setup checklist that ticks itself off, and your target roles |
 | **Pipeline** | Counts per stage, what needs attention, every application |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, research, interview notes, and a PDF export button |
-| **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview |
-| **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals include archived applications, and an interview counts once interview notes exist for that company |
-| **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
+| **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview. A document that is still an empty template says what will fill it |
+| **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |
+| **Tools** | Export of the master resume or a role version, archiving with a preview, every keyword with a copy button, and a short glossary of the terms used here |
 
 **See an example.** A new project is empty, so the dashboard has a **See an example** button. It switches every tab to a fictional candidate, Sam Rivera, seven weeks into a product management search: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores. It is read-only and kept in its own `example/` folder, so it never mixes with your files and your AI tool never reads it. Press **Back to my data** to return. You can delete the folder, and the button goes with it.
 
@@ -140,7 +140,7 @@ If the launcher does not start:
 
 Most people are not looking for one job title. You might be a frontend engineer who also applies to product engineer and full-stack roles, each with a different resume.
 
-So there is no list to pick from. You type your roles in your own words, on the dashboard's Start tab or during onboarding, and they are saved in `profile/roles.md` with your primary one first. Saving from the dashboard replaces only the list; any notes you added to that file are kept. Then:
+So there is no list to pick from. You type your roles in your own words, on the dashboard's Start tab or during onboarding, and they are saved in `profile/roles.md` with your primary one first. The list sits between two marker lines in that file. Saving from the dashboard replaces only what is between them, so any notes you add elsewhere in the file are left exactly as they are. Then:
 
 - **`roles`** tailors three things to them: the skill areas in your profile table, one live practice exercise per role, and role-specific lines in the screening rubric. It adds to what you have and never wipes it, so you can change roles mid-search.
 - **`role resume: [role]`** builds a resume version for one role in `profile/resumes/`, using the same verified facts as your master resume in a different order and emphasis.
@@ -183,6 +183,7 @@ modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
 progress/            daily log, practice log and the ranked gap list
 notes/               long-term memory, one fact per file
+tests/               checks for the scripts (run them after changing one)
 roles/               example patterns the AI adapts to your roles (devops, frontend, backend, product, design, data)
 scripts/             dashboard, pipeline viewer, resume export, story coverage, archiving, command list
 ui/                  the dashboard page
@@ -218,6 +219,8 @@ python3 scripts/pipeline.py --file x.md   # reads a different pipeline file
 
 Shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates.
 
+The stages are Drafted, Applied, Screen (the first call), Interview (any round after that), Final and Offer, and a row is closed as Rejected, Withdrawn or No reply. When a row is closed, its **Furthest** column records the stage it had reached, so an interview or an offer still counts in your totals after a rejection.
+
 **Export a resume**
 
 ```bash
@@ -249,7 +252,15 @@ python3 scripts/archive.py --apply    # moves it
 python3 scripts/archive.py --days 14  # 14 day cut-off instead of 30
 ```
 
-Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<year>.md`. Only sections headed with a date are entries; a section with any other heading stays in the log. Pipeline rows that are Rejected, Withdrawn or No reply and were last touched before the cut-off move to `applications/_archive/PIPELINE-ARCHIVE.md`. Company folders stay where they are. This keeps the files the AI reads every day short.
+Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<year>.md`. Only sections headed with a date are entries; a section with any other heading stays in the log, and everything that stays keeps its place. Pipeline rows that are Rejected, Withdrawn or No reply and were last touched before the cut-off move to `applications/_archive/PIPELINE-ARCHIVE.md`. Company folders stay where they are. This keeps the files the AI reads every day short.
+
+**Run the tests**
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+Checks the scripts against temporary copies, never your files. Run it after changing a script.
 
 ## Limitations
 
@@ -265,7 +276,7 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **It does not find jobs.** You bring the postings. There is no job-board search, scraping or auto-apply.
 - **Very little is automated.** The pipeline is a Markdown table the AI edits, and the scripts only display it. LinkedIn is updated by hand, and there are no reminders. If you skip `check in`, nothing nudges you.
 - **The dashboard is for reading.** You cannot edit a document, add an application or run a coaching session from it.
-- **Setup still takes some comfort with new tools.** The dashboard opens with a double-click, but an AI coding tool has to be installed and opened on the folder, and Python has to be present. Someone who has only used chat apps will want a person beside them for the first session.
+- **Setup still takes some comfort with new tools.** The dashboard opens with a double-click and walks you through getting an AI tool and opening the folder in it, but those steps happen in tools this project does not control. Someone who has only used chat apps may want a person beside them for the first session.
 - **Memory is manual.** Codex and Cursor do not carry memory between sessions, so anything worth keeping has to be written to `notes/`.
 
 **Where the AI can let you down**
@@ -284,7 +295,8 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **Several roles means more upkeep.** Each role version of your resume has to be rebuilt when the master changes, and nothing does that for you.
 - **Story checks are mechanical.** They count words, numbers and "we" against "I". They cannot tell whether a story is true, interesting or right for the question. The twelve questions are a common set, not a complete one.
 - **The setup checklist reads your files, not your effort.** "Fill in and audit your profile" ticks once the profile header is complete and the audit has recorded at least one claim you must not inflate. It cannot tell a thorough audit from a quick one.
-- **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.
+- **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session. Interview and offer totals rely on the Furthest column being filled in when a row is closed; interview notes in a company folder act as a backstop.
+- **The tests cover the scripts, not the page or the AI.** The dashboard page and the mode files have no automated checks.
 - **Archiving is manual and by date only.** Nothing reminds you to run it. It skips a closed application with no valid date, and it never moves company folders or old notes.
 - **The example is one persona.** It shows a product manager's search. The shape carries over to other roles; the details do not.
 
@@ -303,4 +315,5 @@ If you improve it, a pull request to the template is welcome. Keep your personal
 
 ## Questions
 
-If you have any questions, feel free to ping me on [LinkedIn](https://www.linkedin.com/in/hytonylee). You can also find me at [www.hytonylee.com](https://www.hytonylee.com).
+- If you have any questions, feel free to ping me on [LinkedIn](https://www.linkedin.com/in/hytonylee). 
+- You can also find me at [www.hytonylee.com](https://www.hytonylee.com).

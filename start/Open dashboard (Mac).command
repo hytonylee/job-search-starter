@@ -5,7 +5,11 @@
 
 cd "$(dirname "$0")/.." || exit 1
 
-if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys' >/dev/null 2>&1; then
+if [ ! -f scripts/app.py ]; then
+  echo "This launcher cannot find the rest of the project."
+  echo "Keep it inside the project's start folder. If you downloaded a ZIP,"
+  echo "unzip the whole folder first, then double-click this file again."
+elif ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys' >/dev/null 2>&1; then
   # macOS ships a python3 placeholder that only offers to install Apple's developer tools.
   echo "Python 3 is not ready on this Mac."
   echo "If macOS just offered to install developer tools, accept, wait for it to finish,"

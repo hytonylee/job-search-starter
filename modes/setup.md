@@ -7,7 +7,7 @@ The onboarding interview. It sets the project up by asking me questions, one ste
 - Before each step, check the files to see whether it is already done. Skip finished steps and tell me which you skipped.
 - Announce each step as "Step N of 7" with one line on why it matters.
 - Ask one question at a time and wait for my answer. Never invent a fact about me. If I do not know, write `[to confirm]`.
-- After each step, save the files, then tell me to press Refresh on the dashboard.
+- After each step, save the files and tell me the dashboard now shows it. The dashboard updates by itself.
 - If I stop partway, add a `progress/daily-log.md` entry naming the next step, so the next session resumes there.
 
 ## Steps

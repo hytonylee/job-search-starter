@@ -32,43 +32,41 @@ PIPELINE_ARCHIVE = ROOT / "applications" / "_archive" / "PIPELINE-ARCHIVE.md"
 
 ENTRY = re.compile(r"^## (\d{4}-\d{2}-\d{2})\b")
 SECTION = re.compile(r"^## ")
+MAX_DAYS = 3650
 
 
 def split_log(text):
-    """Return (kept, [(date, entry_text), ...]) for a daily log.
+    """The log as blocks in their original order: (date or None, [lines]).
 
-    An entry runs from a "## YYYY-MM-DD" heading to the next "## " heading.
-    Everything else, including sections with a heading that is not a date,
-    is returned in `kept` and never archived.
+    A block with a date is one entry, running from its "## YYYY-MM-DD" heading
+    to the next "## " heading. Every other stretch of the file, including a
+    section whose heading is not a date, is a block with date None.
     """
-    kept, entries, current = [], [], None
+    blocks = [(None, [])]
     for line in text.splitlines():
         match = ENTRY.match(line)
         when = parse_date(match.group(1)) if match else None
-        if when:
-            current = [when, [line]]
-            entries.append(current)
-        elif SECTION.match(line):  # a non-dated section ends the entry above it
-            if current:
-                kept.append("")
-            current = None
-            kept.append(line)
-        elif current:
-            current[1].append(line)
-        else:
-            kept.append(line)
-    return "\n".join(kept).rstrip(), [(d, "\n".join(body).rstrip()) for d, body in entries]
+        if when or SECTION.match(line):
+            blocks.append((when, []))
+        blocks[-1][1].append(line)
+    return [block for block in blocks if block[1]]
+
+
+def log_entries(text):
+    """The dated entries of a log as (date, text), in file order."""
+    return [(when, "\n".join(lines).rstrip()) for when, lines in split_log(text) if when]
 
 
 def archive_log(cutoff, apply):
+    """Returns (report lines, number of entries that move)."""
     if not LOG.exists():
-        return ["progress/daily-log.md not found, skipped"]
-    kept, entries = split_log(LOG.read_text(encoding="utf-8"))
-    old = [(d, body) for d, body in entries if d < cutoff]
-    recent = [(d, body) for d, body in entries if d >= cutoff]
+        return ["progress/daily-log.md not found, skipped"], 0
+    blocks = split_log(LOG.read_text(encoding="utf-8", errors="replace"))
+    entries = [(when, lines) for when, lines in blocks if when]
+    old = [(when, "\n".join(lines).rstrip()) for when, lines in entries if when < cutoff]
     report = [f"Daily log: {len(old)} of {len(entries)} entries dated before {cutoff}"]
     if not old:
-        return report
+        return report, 0
     by_year = {}
     for when, body in old:
         by_year.setdefault(when.year, []).append((when, body))
@@ -77,21 +75,23 @@ def archive_log(cutoff, apply):
         report.append(f"  {len(moved)} -> {target.relative_to(ROOT).as_posix()} "
                       f"({min(d for d, _ in moved)} to {max(d for d, _ in moved)})")
         if apply:
-            existing = split_log(target.read_text(encoding="utf-8"))[1] if target.exists() else []
+            existing = log_entries(target.read_text(encoding="utf-8", errors="replace")) if target.exists() else []
             merged = sorted(existing + moved, key=lambda e: e[0], reverse=True)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(f"# Daily Log Archive {year}\n\n"
                               + "\n\n".join(body for _, body in merged) + "\n", encoding="utf-8")
-    if apply:
-        LOG.write_text("\n\n".join([kept] + [body for _, body in recent]) + "\n", encoding="utf-8")
-    return report
+    if apply:  # everything that stays keeps its original order and spacing
+        kept = [line for when, lines in blocks if not (when and when < cutoff) for line in lines]
+        LOG.write_text("\n".join(kept).rstrip() + "\n", encoding="utf-8")
+    return report, len(old)
 
 
 def archive_pipeline(cutoff, apply):
+    """Returns (report lines, number of rows that move)."""
     if not PIPELINE.exists():
-        return ["applications/PIPELINE.md not found, skipped"]
+        return ["applications/PIPELINE.md not found, skipped"], 0
     header, header_lines, moved, kept, undated, in_table = None, [], [], [], [], False
-    for line in PIPELINE.read_text(encoding="utf-8").splitlines():
+    for line in PIPELINE.read_text(encoding="utf-8", errors="replace").splitlines():
         is_row = line.strip().startswith("|")
         cells = split_cells(line) if is_row else []
         if header is None and is_row and cells[0].lower() == "company":
@@ -115,7 +115,7 @@ def archive_pipeline(cutoff, apply):
         kept.append(line)
 
     if header is None:
-        return ["Pipeline: no table found, skipped"]
+        return ["Pipeline: no table found, skipped"], 0
     report = [f"Pipeline: {len(moved)} closed application(s) last touched before {cutoff}"]
     for line in moved:
         cells = split_cells(line)
@@ -134,7 +134,16 @@ def archive_pipeline(cutoff, apply):
                         ""] + header_lines
         PIPELINE_ARCHIVE.write_text("\n".join(archived + moved) + "\n", encoding="utf-8")
         PIPELINE.write_text("\n".join(kept) + "\n", encoding="utf-8")
-    return report
+    return report, len(moved)
+
+
+def run(days, apply):
+    """Archive both files. Returns {"days", "applied", "report", "moved"}; a dry run unless apply."""
+    days = max(1, min(int(days), MAX_DAYS))
+    cutoff = date.today() - timedelta(days=days)
+    log_report, log_count = archive_log(cutoff, apply)
+    row_report, row_count = archive_pipeline(cutoff, apply)
+    return {"days": days, "applied": bool(apply), "report": log_report + row_report, "moved": log_count + row_count}
 
 
 def main():
@@ -142,13 +151,16 @@ def main():
     parser.add_argument("--days", type=int, default=30, help="keep anything newer than this (default: 30)")
     parser.add_argument("--apply", action="store_true", help="move the items (default is a dry run)")
     args = parser.parse_args()
-    if args.days < 1:
-        sys.exit("--days must be 1 or more")
+    if not 1 <= args.days <= MAX_DAYS:
+        sys.exit(f"--days must be between 1 and {MAX_DAYS}")
 
-    cutoff = date.today() - timedelta(days=args.days)
-    for line in archive_log(cutoff, args.apply) + archive_pipeline(cutoff, args.apply):
+    result = run(args.days, args.apply)
+    for line in result["report"]:
         print(line)
-    print("\nDone." if args.apply else "\nDry run, nothing changed. Add --apply to move these.")
+    if not result["moved"]:
+        print("\nNothing to archive.")
+    else:
+        print("\nDone." if args.apply else "\nDry run, nothing changed. Add --apply to move these.")
 
 
 if __name__ == "__main__":

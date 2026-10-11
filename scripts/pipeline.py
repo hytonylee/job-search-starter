@@ -22,9 +22,11 @@ from common import ROOT, parse_date, read_table
 PIPELINE = ROOT / "applications" / "PIPELINE.md"
 PIPELINE_PAGE = ROOT / "output" / "pipeline.html"
 
-STAGES = ["Drafted", "Applied", "Screen", "Technical", "Final", "Offer",
+STAGES = ["Drafted", "Applied", "Screen", "Interview", "Final", "Offer",
           "Rejected", "Withdrawn", "No reply"]
-INTERVIEW_STAGES = {"Screen", "Technical", "Final", "Offer"}
+PROGRESSION = STAGES[:6]  # the stages an application moves forward through, in order
+INTERVIEW_STAGES = {"Screen", "Interview", "Final", "Offer"}
+STAGE_ALIASES = {"technical": "Interview"}  # the name this stage had in earlier versions
 CLOSED = {"Rejected", "Withdrawn", "No reply"}
 STALE_DAYS = 21  # an Applied row with no contact for this long is flagged
 NO_COMPANY = "(no company name)"
@@ -37,6 +39,7 @@ class PipelineError(Exception):
 def normalise_stage(text):
     """The stage in its standard spelling, or the text unchanged if it is not a known stage."""
     known = {stage.lower(): stage for stage in STAGES}
+    known.update(STAGE_ALIASES)
     return known.get(text.strip().lower(), text.strip())
 
 
@@ -70,6 +73,13 @@ def enrich(rows, today):
             if row.get(field) and not parse_date(row[field]):
                 row["issues"].append(f"{field} '{row[field]}' is not YYYY-MM-DD")
         row["closed"] = row["stage"] in CLOSED
+        # The furthest stage reached. A closed row keeps it in the Furthest column, so a later
+        # rejection does not erase the interview or offer from the progress totals.
+        recorded = normalise_stage(row.get("furthest", ""))
+        if recorded and recorded not in PROGRESSION:
+            row["issues"].append(f"furthest '{recorded}' is not one of {', '.join(PROGRESSION)}")
+        reached = [stage for stage in (row["stage"], recorded) if stage in PROGRESSION]
+        row["furthest"] = max(reached, key=PROGRESSION.index) if reached else ""
         due = parse_date(row.get("due", ""))
         last = parse_date(row.get("last contact", "")) or parse_date(row.get("applied", ""))
         row["flag"] = ""
