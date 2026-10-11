@@ -70,7 +70,7 @@ If the launcher does not start:
 
 - **"Python 3 is not installed."** Install it from [python.org/downloads](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" during the install. On a Mac the message reads "Python 3 is not ready", and macOS may offer to install Apple's developer tools, which include Python: accept, wait for it to finish, and double-click again.
 - **Mac says the file cannot be opened, or is from an unidentified developer.** This happens if you downloaded the repo as a ZIP instead of cloning it. Right-click the file, choose Open, then Open again. You only need to do this once.
-- **Mac says you do not have permission.** In Terminal, run `chmod +x start/Open dashboard (Mac).command` from the repo folder.
+- **Mac says you do not have permission.** In Terminal, run `chmod +x "start/Open dashboard (Mac).command"` from the repo folder.
 - **Windows shows "Windows protected your PC".** Click More info, then Run anyway.
 
 | Tab | What you see |
