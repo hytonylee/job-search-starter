@@ -57,6 +57,12 @@ class Pipeline(unittest.TestCase):
         old = "| Company | Role | Stage | Applied |\n|---|---|---|---|\n| Acme | PM | Final | 2026-03-01 |\n"
         self.assertEqual(rows_from(old)["Acme"]["furthest"], "Final")
 
+    def test_a_badly_encoded_file_still_reads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "PIPELINE.md"
+            path.write_bytes(TABLE.encode("utf-8") + b"\n\xff\xfe stray bytes\n")
+            self.assertEqual(len(pipeline.read_rows(path)), 7)
+
     def test_missing_table_raises(self):
         with self.assertRaises(pipeline.PipelineError):
             rows_from("# nothing here\n")

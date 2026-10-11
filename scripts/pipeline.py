@@ -47,7 +47,7 @@ def read_rows(path):
     """Rows of the pipeline table as dicts, each with a list of problems found in it."""
     if not path.exists():
         raise PipelineError(f"Pipeline file not found: {path}")
-    header, table = read_table(path.read_text(encoding="utf-8"), first_column="company")
+    header, table = read_table(path.read_text(encoding="utf-8", errors="replace"), first_column="company")
     if header is None:
         raise PipelineError(f"No pipeline table found in {path}")
     rows = []

@@ -27,14 +27,14 @@ def mode_file(keyword):
 
 def keywords():
     """Every keyword as (keyword, purpose), in the order AGENTS.md lists them."""
-    section = re.search(r"^## Keywords\n(.*?)(?=^## |\Z)", AGENTS.read_text(encoding="utf-8"), flags=re.M | re.S)
+    section = re.search(r"^## Keywords\n(.*?)(?=^## |\Z)", AGENTS.read_text(encoding="utf-8", errors="replace"), flags=re.M | re.S)
     listed = [line for line in (section.group(1) if section else "").splitlines() if " · " in line]
     rows = []
     for keyword in re.findall(r"`([^`]+)`", listed[0] if listed else ""):
         path = mode_file(keyword)
         purpose = ""
         if path.exists():
-            found = re.search(r"^Purpose:\s*(.+?)\.?$", path.read_text(encoding="utf-8"), flags=re.M)
+            found = re.search(r"^Purpose:\s*(.+?)\.?$", path.read_text(encoding="utf-8", errors="replace"), flags=re.M)
             purpose = found.group(1) if found else ""
         rows.append((keyword, purpose or "(no mode file found)"))
     return rows
@@ -42,7 +42,7 @@ def keywords():
 
 def script_usage(path):
     """Return (summary, [(command, what it does), ...]) from a script's docstring."""
-    doc = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or ""
+    doc = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8", errors="replace"))) or ""
     lines = doc.splitlines()
     summary = lines[0] if lines else ""
     commands, in_usage = [], False

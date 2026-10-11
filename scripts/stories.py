@@ -42,7 +42,7 @@ def filled_value(text):
 
 
 def parse_story(path):
-    text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
+    text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8", errors="replace"), flags=re.S)
     title = re.search(r"^#\s+(.+)$", text, flags=re.M)
     meta, sections, current = {}, {}, None
     for line in text.splitlines():

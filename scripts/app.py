@@ -15,6 +15,7 @@ import argparse
 import hashlib
 import json
 import mimetypes
+import os
 import re
 import secrets
 import sys
@@ -43,6 +44,9 @@ EXERCISES_HEADING = "## Exercises"  # in modes/practice.md; the `roles` keyword 
 
 # The role list sits between two marker lines, so saving it never touches anything else in the file.
 ROLES_START, ROLES_END = "<!-- roles:start -->", "<!-- roles:end -->"
+START_MARKER = re.compile(r"^\s*<!--\s*roles:start\s*-->\s*$")  # forgiving about spacing a hand edit may add
+END_MARKER = re.compile(r"^\s*<!--\s*roles:end\s*-->\s*$")
+LEGAL_SUFFIXES = {"inc", "incorporated", "ltd", "limited", "llc", "corp", "corporation", "co", "company", "gmbh", "plc"}
 ROLES_TEMPLATE = f"""# Target Roles
 
 The job titles I am applying for, one per line. The first is my primary target.
@@ -65,7 +69,10 @@ def read(root, relative):
 
 def safe_md(root, relative):
     """Resolve a path the page asked for, or None if it is not an allowed .md file under root."""
-    path = (root / relative).resolve()
+    try:
+        path = (root / relative).resolve()
+    except (OSError, ValueError):  # for example a null byte in the path
+        return None
     allowed = any((root / top).resolve() in path.parents for top in READABLE)
     return path if allowed and path.suffix == ".md" and path.is_file() else None
 
@@ -74,24 +81,42 @@ def company_folders(root):
     return sorted(p for p in (root / "applications").glob("*") if p.is_dir() and not p.name.startswith("_"))
 
 
+def is_note(line):
+    """An indented, non-blank line: a note under the role above it."""
+    return line[:1] in (" ", "\t") and bool(line.strip())
+
+
 def roles_block(lines):
-    """(first, last) line indexes of the role list: between the markers, or the first run of bullets."""
-    if ROLES_START in lines and ROLES_END in lines[lines.index(ROLES_START):]:
-        start = lines.index(ROLES_START)
-        return start + 1, lines.index(ROLES_END, start)
+    """Where the role list is: (first, last, has_start, has_end) as line indexes, last exclusive.
+
+    Normally the lines between the two markers. If the end marker was lost, the list runs to the
+    last bullet after the start marker. With no markers at all, it is the first run of bullets.
+    """
+    start = next((i for i, line in enumerate(lines) if START_MARKER.match(line)), None)
+    if start is not None:
+        end = next((i for i in range(start + 1, len(lines)) if END_MARKER.match(lines[i])), None)
+        if end is not None:
+            return start + 1, end, True, True
+        last = start + 1
+        for i in range(start + 1, len(lines)):
+            if lines[i].startswith("- ") or is_note(lines[i]):
+                last = i + 1
+            elif lines[i].strip():
+                break
+        return start + 1, last, True, False
     bullets = [i for i, line in enumerate(lines) if line.startswith("- ")]
     if not bullets:
-        return len(lines), len(lines)
-    end = bullets[0]
-    while end < len(lines) and (lines[end].startswith("- ") or lines[end][:1] in (" ", "\t")):
-        end += 1  # a run of bullets, each with any indented lines under it
-    return bullets[0], end
+        return len(lines), len(lines), False, False
+    last = bullets[0]
+    while last < len(lines) and (lines[last].startswith("- ") or is_note(lines[last])):
+        last += 1
+    return bullets[0], last, False, False
 
 
 def target_roles(root):
     """The roles listed in profile/roles.md, ignoring the placeholder line."""
     lines = read(root, "profile/roles.md").splitlines()
-    first, last = roles_block(lines)
+    first, last, _, _ = roles_block(lines)
     roles = [line[2:].strip() for line in lines[first:last] if line.startswith("- ")]
     return [role for role in roles if role and not role.startswith("[")]
 
@@ -131,8 +156,10 @@ def progress_stats(root):
         except pipeline.PipelineError:
             pass
 
-    def same_company(name, folder):  # "Acme Inc." matches the folder "acme", and the other way round
-        return name == folder or name.startswith(folder + "-") or folder.startswith(name + "-")
+    def same_company(name, folder):  # "Acme Inc." matches the folder "acme"; "Scale" does not match "scale-ai"
+        longer, shorter = sorted((name, folder), key=len, reverse=True)
+        return longer == shorter or (longer.startswith(shorter + "-")
+                                     and set(longer[len(shorter) + 1:].split("-")) <= LEGAL_SUFFIXES)
 
     interviewed = [r for r in rows if r["furthest"] in pipeline.INTERVIEW_STAGES]
     from_notes = 0
@@ -285,7 +312,8 @@ def state(root=ROOT):
 def save_roles(roles, target=None):
     """Replace the role list in profile/roles.md and leave the rest of the file exactly as it is.
 
-    Indented lines under a role that is kept stay with it. Returns the cleaned list, or raises ValueError.
+    Indented notes under a role that is kept stay with it, as does any text above the first role
+    inside the markers. Returns the cleaned list, or raises ValueError.
     """
     if not isinstance(roles, list):
         raise ValueError("roles must be a list")
@@ -299,24 +327,34 @@ def save_roles(roles, target=None):
         raise ValueError("Keep it to 8 roles or fewer. A focused search works better.")
 
     target = target or ROOT / "profile" / "roles.md"
-    text = target.read_text(encoding="utf-8", errors="replace") if target.exists() else ROLES_TEMPLATE
-    lines = text.splitlines()
-    first, last = roles_block(lines)
-    notes, current = {}, None  # indented lines under each existing role
+    raw = target.read_bytes() if target.exists() else ROLES_TEMPLATE.encode("utf-8")
+    newline = "\r\n" if b"\r\n" in raw else "\n"
+    lines = raw.decode("utf-8", errors="replace").splitlines()
+    first, last, has_start, has_end = roles_block(lines)
+
+    def key(role):
+        return re.sub(r"\s+", " ", role).strip().lower()
+
+    lead, notes, current = [], {}, None  # text above the first role, and notes under each role
     for line in lines[first:last]:
         if line.startswith("- "):
-            current = line[2:].strip().lower()
-        elif current and line.strip():
+            current = key(line[2:])
+        elif current is None:
+            lead.append(line)
+        elif line.strip():
             notes.setdefault(current, []).append(line)
-    block = []
+    block = lead
     for role in cleaned:
-        block.append(f"- {role}")
-        block += notes.get(role.lower(), [])
-    block = block or [NO_ROLE_YET]
-    if ROLES_START not in lines[:first]:  # a file written by hand: add the markers around its list
+        block = block + [f"- {role}"] + notes.get(key(role), [])
+    if not cleaned:
+        block = block + [NO_ROLE_YET]
+    if not has_start:  # a file written by hand: put the markers around its list
         block = [ROLES_START] + block + [ROLES_END]
+    elif not has_end:  # the end marker was lost: put it back
+        block = block + [ROLES_END]
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text("\n".join(lines[:first] + block + lines[last:]).rstrip() + "\n", encoding="utf-8")
+    text = "\n".join(lines[:first] + block + lines[last:]).rstrip() + "\n"
+    target.write_bytes(text.replace("\n", newline).encode("utf-8"))
     return cleaned
 
 
@@ -338,9 +376,10 @@ def do_action(path, body):
             return 400, {"error": str(error)}
     if path == "/api/archive":
         try:
-            return 200, archive.run(body.get("days", 30), bool(body.get("apply")))
+            days = int(body.get("days", 30))
         except (TypeError, ValueError, OverflowError):
             return 400, {"error": "Days must be a whole number."}
+        return 200, archive.run(days, bool(body.get("apply")))
     return 404, {"error": "Not found"}
 
 
@@ -403,9 +442,10 @@ class Handler(BaseHTTPRequestHandler):
             path = safe_md(root, query.get("path", [""])[0])
             if path:
                 text = clean_markdown(path.read_text(encoding="utf-8", errors="replace"))
-                heading = "## " + query.get("section", [""])[0]
-                if heading != "## " and heading in text:
-                    text = text.split(heading, 1)[1]
+                wanted = query.get("section", [""])[0]
+                found = re.search(r"^## " + re.escape(wanted) + r"[ \t]*$", text, flags=re.M) if wanted else None
+                if found:  # show the document from that section onward
+                    text = text[found.end():]
                 self.send_json(200, {"path": path.relative_to(root.resolve()).as_posix(), "html": render_md(text)})
             else:
                 self.send_json(404, {"error": "File not found"})
@@ -431,6 +471,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(*do_action(urlparse(self.path).path, body if isinstance(body, dict) else {}))
 
 
+class Server(ThreadingHTTPServer):
+    # Windows lets a second program bind a port that is already listening when address reuse is on,
+    # which would hide a dashboard that is already running. Elsewhere reuse only skips a restart delay.
+    allow_reuse_address = os.name != "nt"
+
+
 def already_running(port):
     """True if a dashboard for this same folder is answering on the port."""
     direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # never through a proxy
@@ -451,7 +497,7 @@ def main():
     server = None
     for port in ports:
         try:
-            server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+            server = Server(("127.0.0.1", port), Handler)
             break
         except OSError:
             # The port is taken. If it is this folder's dashboard, open that one and stop here.

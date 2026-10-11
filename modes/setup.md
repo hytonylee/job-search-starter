@@ -14,7 +14,7 @@ The onboarding interview. It sets the project up by asking me questions, one ste
 
 ## Steps
 
-1. **Target roles.** Read `profile/roles.md`. If it has no real roles, ask which job titles I am applying for (several is fine) and which is primary. Save them there.
+1. **Target roles.** Read `profile/roles.md`. If it has no real roles, ask which job titles I am applying for (several is fine) and which is primary. Save them there as `- ` lines between the two marker lines, and keep the markers.
 2. **Resume source.** Look for `profile/linkedin-export.pdf`. If it is missing, tell me how to get it (LinkedIn profile → Resources → Save to PDF, saved into `profile/`) and wait. If I have no LinkedIn profile, ask me to paste my current resume as text instead.
 3. **Master resume.** Write `profile/resume.md` from that source in clean Markdown, changing no wording yet. Fill `profile/linkedin-profile.md` with the same text section by section and set "Last synced" to today.
 4. **The basics.** Ask, one at a time: where I am based and my work authorization; the level I am targeting; my salary floor; remote, hybrid or on-site; anything that makes a job an automatic no. Write the first three to the header of `profile/profile.md` and the rest to the hard stops in `applications/SCREENING-RUBRIC.md`.

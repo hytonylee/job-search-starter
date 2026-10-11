@@ -24,7 +24,8 @@ def clean_markdown(text):
 
 def link(match):
     """Render [text](url). A url with a scheme outside SAFE_SCHEMES, such as javascript:, becomes plain text."""
-    label, url = match.group(1), match.group(2).replace('"', "%22")
+    label = match.group(1)
+    url = re.sub(r"[\x00-\x20\x7f]", "", match.group(2)).replace('"', "%22")  # browsers ignore control characters in a scheme
     scheme = SCHEME.match(url)
     if scheme and scheme.group(1).lower() not in SAFE_SCHEMES:
         return label
@@ -38,7 +39,7 @@ def inline(text):
     text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
     text = re.sub(r"\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)", link, text)  # url may hold one level of ( )
     text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"\*\*(.+?)\*\*(?!\*)", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", text)
     text = re.sub(r"(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)", r"<em>\1</em>", text)
     return text
@@ -47,6 +48,7 @@ def inline(text):
 def to_html(markdown):
     """Convert prose Markdown (everything except tables)."""
     out, paragraph, open_lists = [], [], []  # open_lists: stack of (indent, tag)
+    after_blank = False                      # a blank line was seen while a list was still open
 
     def flush():
         if paragraph:
@@ -58,19 +60,27 @@ def to_html(markdown):
             out.append(f"</{open_lists.pop()[1]}>")
 
     for line in markdown.splitlines():
-        heading = re.match(r"^(#{1,4})\s+(.*)$", line)
-        item = re.match(r"^(\s*)([-*+]|(\d{1,3})[.)])\s+(.*)$", line)  # up to 3 digits, so "2019. " is prose
-        if item and item.group(3) and item.group(3) != "1" and paragraph:
-            item = None  # only "1." may interrupt a paragraph, as in standard Markdown
         if not line.strip():
             flush()
-            close_lists()
-        elif heading:
+            after_blank = bool(open_lists)  # the list stays open: the next line decides whether it continues
+            continue
+        heading = re.match(r"^(#{1,4})\s+(.*)$", line)
+        rule = re.match(r"^\s*([-*_])(\s?\1){2,}\s*$", line)
+        item = None if rule else re.match(r"^(\s*)([-*+]|(\d{1,3})[.)])\s+(.*)$", line)  # 1-3 digits, so "2019. " is prose
+        if item and item.group(3) and item.group(3) != "1" and paragraph:
+            item = None  # only "1." may interrupt a paragraph, as in standard Markdown
+        if open_lists and not (heading or rule or item) and (line[:1].isspace() or not after_blank):
+            # Still inside the item above: a wrapped line, or a further paragraph indented under it.
+            out[-1] += ("<br><br>" if after_blank else " ") + inline(line.strip())
+            after_blank = False
+            continue
+        after_blank = False
+        if heading:
             flush()
             close_lists()
             level = len(heading.group(1))
             out.append(f"<h{level}>{inline(heading.group(2).strip())}</h{level}>")
-        elif re.match(r"^\s*([-*_])(\s?\1){2,}\s*$", line):
+        elif rule:
             flush()
             close_lists()
             out.append("<hr>")
@@ -86,8 +96,6 @@ def to_html(markdown):
                 start = f' start="{item.group(3)}"' if tag == "ol" and item.group(3) != "1" else ""
                 out.append(f"<{tag}{start}>")
             out.append("<li>" + inline(item.group(4).strip()))
-        elif open_lists and line[:1].isspace():  # wrapped line of the item above
-            out[-1] += " " + inline(line.strip())
         else:
             close_lists()
             hard_break = line.endswith("  ") or line.endswith("\\")

@@ -13,6 +13,10 @@ class Links(unittest.TestCase):
         self.assertIn('href="https://a.example/x?b=1&amp;c=2"', render.inline("[t](https://a.example/x?b=1&c=2)"))
         self.assertIn('href="mailto:a@example.com"', render.inline("[t](mailto:a@example.com)"))
 
+    def test_control_characters_cannot_hide_a_scheme(self):
+        for url in ("\x01javascript:alert(1)", "java\x00script:alert(1)", "\x1fjavascript:x"):
+            self.assertNotIn("href", render.inline(f"[label]({url})"), repr(url))
+
     def test_bare_domain_gets_https(self):
         self.assertIn('href="https://linkedin.com/in/x"', render.inline("[t](linkedin.com/in/x)"))
 
@@ -41,6 +45,17 @@ class Lists(unittest.TestCase):
 
     def test_bold_italic_nests_correctly(self):
         self.assertEqual(render.inline("***x***"), "<strong><em>x</em></strong>")
+        self.assertEqual(render.inline("**a *b***"), "<strong>a <em>b</em></strong>")
+
+    def test_a_wrapped_item_does_not_lose_the_items_after_it(self):
+        self.assertEqual(render.to_html("1. one\ncontinued\n2. two").replace("\n", ""), "<ol><li>one continued<li>two</ol>")
+
+    def test_a_paragraph_inside_an_item_keeps_the_list_going(self):
+        html = render.to_html("1. a\n\n   more\n2. b").replace("\n", "")
+        self.assertEqual(html, "<ol><li>a<br><br>more<li>b</ol>")
+
+    def test_text_after_a_blank_line_ends_the_list(self):
+        self.assertEqual(render.to_html("- a\n\nAfter").replace("\n", ""), "<ul><li>a</ul><p>After</p>")
 
 
 if __name__ == "__main__":

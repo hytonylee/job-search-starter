@@ -209,7 +209,7 @@ function viewStart() {
         ? "You are set up. This button gives you the message that starts today's planning session."
         : "Setup is an interview that takes 60 to 90 minutes, and you can stop and carry on later. It covers your target roles, your resume, the basics, a check of your claims, and your first application. This button gives you the first message to send."),
       el("div", { class: "row" },
-        el("button", { class: "btn primary", "aria-expanded": String(!!ui.showPrompt), onclick: () => { ui.showPrompt = !ui.showPrompt; render(); } },
+        el("button", { class: "btn primary", id: "onboarding-toggle", "aria-expanded": String(!!ui.showPrompt), onclick: () => { ui.showPrompt = !ui.showPrompt; render(); } },
           ui.showPrompt ? "Hide the instructions" : label),
         state.has_example && !started ? el("button", { class: "btn", onclick: toggleExample }, "See an example first") : null),
       ui.showPrompt ? onboardingBox(prompt) : null),
@@ -357,7 +357,7 @@ function viewPrep() {
         el("h1", {}, current.title), el("p", {}, current.about),
         el("p", { class: "muted" }, "Nothing here yet. It fills in as you work with your AI tool."),
         el("button", { class: "btn", onclick: () => { ui.showTemplate[current.path] = true; render(); } }, "Show the blank template"))
-    : docPane(current.path, current.section);
+    : docPane(current.path, current.ready ? current.section : "");
   return [el("p", { class: "muted" }, "Your own material, to read before an interview. To change any of it, edit the file or ask your AI tool."),
     el("div", { class: "split" },
       el("div", { class: "list", role: "group", "aria-label": "Documents" }, docs.map(d =>
@@ -410,6 +410,7 @@ async function runArchive(apply) {
   try { results.archive = await api("/api/archive", { days, apply }); }
   catch (error) { results.archive = { error: error.message }; }
   const archive = results.archive;
+  if (archive.days) ui.days = String(archive.days);     // the server keeps days within 1 to 3650; show what it used
   ui.previewOpen = !!archive.report && !archive.applied && archive.moved > 0;   // holds auto-refresh until applied or dismissed
   if (apply && !archive.error) await load(); else if (results === ui.results) render();
 }
@@ -419,11 +420,19 @@ function viewTools() {
     option("", "Master resume", ui.source), state.versions.map(v => option(v, "Version: " + v, ui.source)));
   const paper = el("select", { "aria-label": "Paper size", onchange: e => { ui.paper = e.target.value; } },
     option("letter", "US Letter", ui.paper), option("a4", "A4", ui.paper));
-  const days = el("input", { type: "number", min: "1", max: "3650", value: ui.days, style: "width:90px", "aria-label": "Days to keep",
-    oninput: e => { ui.days = e.target.value; }, onchange: () => render() });
   const archive = ui.results.archive;
   const previewed = !!archive?.report && !archive.applied;
-  const sameDays = previewed && String(archive.days) === String(parseInt(ui.days, 10));
+  const matchesPreview = () => previewed && archive.days === parseInt(ui.days, 10);
+  const archiveNote = () => !archive?.report ? ""
+    : archive.applied ? "Done. These were moved."
+    : !archive.moved ? "Nothing to archive."
+    : matchesPreview() ? "Preview for " + archive.days + " days. Nothing has changed yet."
+    : "You changed the number of days. Press Preview again before archiving.";
+  const archiveButton = el("button", { class: "btn", disabled: !(matchesPreview() && archive.moved > 0), onclick: () => runArchive(true) }, "Archive now");
+  const note = el("p", { class: "muted small", style: "margin-top:8px", role: "status" }, archiveNote());
+  // Typing in the box updates the button and the note in place. Redrawing here would swallow a click on Preview.
+  const days = el("input", { type: "number", min: "1", max: "3650", value: ui.days, style: "width:90px", "aria-label": "Days to keep",
+    oninput: e => { ui.days = e.target.value; archiveButton.disabled = !(matchesPreview() && archive.moved > 0); note.textContent = archiveNote(); } });
   const off = ui.example ? "Turned off in the example" : null;
   return [
     ui.example ? el("p", { class: "muted" }, "The buttons on this tab are turned off while you look at the example.") : null,
@@ -436,15 +445,10 @@ function viewTools() {
     el("h2", {}, "Archive old entries"),
     el("div", { class: "card" }, el("div", { class: "row" }, "Keep the last", days, "days",
         el("button", { class: "btn primary", disabled: ui.example, title: off, onclick: () => runArchive(false) }, "Preview"),
-        el("button", { class: "btn", disabled: !(sameDays && archive.moved > 0), onclick: () => runArchive(true) }, "Archive now")),
+        archiveButton),
       el("p", { class: "muted small" }, "Moves older daily-log entries and closed applications into _archive folders. Preview first."),
       archive?.error ? el("div", { class: "notice" }, archive.error) : null,
-      archive?.report ? el("div", { class: "card" }, el("pre", {}, archive.report.join("\n")),
-        el("p", { class: "muted small", style: "margin-top:8px" },
-          archive.applied ? "Done. These were moved."
-          : !archive.moved ? "Nothing to archive."
-          : sameDays ? "Preview for " + archive.days + " days. Nothing has changed yet."
-          : "You changed the number of days. Press Preview again before archiving.")) : null),
+      archive?.report ? el("div", { class: "card" }, el("pre", {}, archive.report.join("\n")), note) : null),
     el("h2", {}, "Keywords for your AI tool"),
     el("div", { class: "card" }, el("div", { class: "kwlist" }, state.keywords.map(([keyword, about]) => [
       el("span", {}, el("span", { class: "kw" }, keyword)), el("span", { class: "about muted" }, about), copyButton(keyword.replace(/: \[.*\]$/, ": "))]))),
@@ -466,7 +470,11 @@ function focusKey(node) {
   return [node.tagName, node.getAttribute("aria-label") || "", node.getAttribute("role") || "", (node.textContent || "").trim().slice(0, 60)].join("|");
 }
 function selectTab(id, focus) {
-  ui.tab = id; ui.previewOpen = false;
+  if (id !== ui.tab) {                                  // an unapplied archive preview does not follow you to another tab
+    if (ui.results.archive && !ui.results.archive.applied) ui.results.archive = null;
+    ui.previewOpen = false;
+  }
+  ui.tab = id;
   history.replaceState(null, "", "#" + id);
   render();
   if (focus) document.querySelector("#tab-" + id)?.focus();
@@ -474,7 +482,10 @@ function selectTab(id, focus) {
 function render() {
   if (!state) return;                                   // nothing to draw while disconnected
   if (!VIEWS[ui.tab]) ui.tab = "start";
+  const focusable = () => [...document.querySelectorAll("button, a[href], input, select, [tabindex]")];
   const focused = focusKey(document.activeElement);
+  // Several controls can share a label ("Copy"), so remember which of them had focus.
+  const nth = focused ? focusable().filter(n => focusKey(n) === focused).indexOf(document.activeElement) : -1;
   const ids = TABS.map(([id]) => id);
   document.querySelector("#nav").replaceChildren(...TABS.map(([id, label], i) =>
     el("button", { role: "tab", id: "tab-" + id, "aria-controls": "main", "aria-selected": String(id === ui.tab),
@@ -494,9 +505,10 @@ function render() {
   const main = document.querySelector("#main");
   main.setAttribute("aria-labelledby", "tab-" + ui.tab);
   main.replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
-  if (focused) {                                        // the redraw replaced the focused control; put focus on its successor
-    const match = [...document.querySelectorAll("button, a[href], input, select, [tabindex]")].find(n => focusKey(n) === focused);
-    if (match && match !== document.activeElement) match.focus({ preventScroll: true });
+  if (focused && nth >= 0) {                            // the redraw replaced the focused control; put focus on its successor
+    const matches = focusable().filter(n => focusKey(n) === focused);
+    const match = matches[nth] || matches[0] || main;   // if the control is gone, stay inside the panel rather than falling to the top
+    if (match !== document.activeElement) match.focus({ preventScroll: true });
   }
 }
 

@@ -22,7 +22,7 @@ import re
 import sys
 from datetime import date, timedelta
 
-from common import ROOT, is_separator, parse_date, split_cells
+from common import ROOT, is_separator, parse_date, read_table, split_cells
 from pipeline import CLOSED, normalise_stage
 
 LOG = ROOT / "progress" / "daily-log.md"
@@ -31,7 +31,7 @@ PIPELINE = ROOT / "applications" / "PIPELINE.md"
 PIPELINE_ARCHIVE = ROOT / "applications" / "_archive" / "PIPELINE-ARCHIVE.md"
 
 ENTRY = re.compile(r"^## (\d{4}-\d{2}-\d{2})\b")
-SECTION = re.compile(r"^## ")
+SECTION = re.compile(r"^#{1,2} ")  # any top-level or second-level heading ends the entry above it
 MAX_DAYS = 3650
 
 
@@ -39,8 +39,8 @@ def split_log(text):
     """The log as blocks in their original order: (date or None, [lines]).
 
     A block with a date is one entry, running from its "## YYYY-MM-DD" heading
-    to the next "## " heading. Every other stretch of the file, including a
-    section whose heading is not a date, is a block with date None.
+    to the next "# " or "## " heading. Every other stretch of the file, including
+    a section whose heading is not a date, is a block with date None.
     """
     blocks = [(None, [])]
     for line in text.splitlines():
@@ -125,14 +125,20 @@ def archive_pipeline(cutoff, apply):
     for company in undated:
         report.append(f"  left in place, closed but has no YYYY-MM-DD date: {company}")
     if apply and moved:
-        PIPELINE_ARCHIVE.parent.mkdir(parents=True, exist_ok=True)
+        # Rebuild the archive table under today's columns, so rows archived before a column was
+        # added (such as Furthest) and rows archived now line up under one header.
+        columns = split_cells(header_lines[0])
+        rows = []
         if PIPELINE_ARCHIVE.exists():
-            archived = PIPELINE_ARCHIVE.read_text(encoding="utf-8").rstrip("\n").splitlines()
-        else:
-            archived = ["# Pipeline Archive", "",
-                        "Closed applications moved out of `applications/PIPELINE.md`. Oldest first.",
-                        ""] + header_lines
-        PIPELINE_ARCHIVE.write_text("\n".join(archived + moved) + "\n", encoding="utf-8")
+            old_header, old_rows = read_table(PIPELINE_ARCHIVE.read_text(encoding="utf-8", errors="replace"), "company")
+            rows += [dict(zip(old_header or [], cells)) for cells in old_rows]
+        rows += [dict(zip(header, split_cells(line))) for line in moved]
+        table = ["| " + " | ".join(columns) + " |", "|" + "---|" * len(columns)]
+        table += ["| " + " | ".join(row.get(c.lower(), "").replace("|", "\\|") for c in columns) + " |" for row in rows]
+        PIPELINE_ARCHIVE.parent.mkdir(parents=True, exist_ok=True)
+        PIPELINE_ARCHIVE.write_text("\n".join(
+            ["# Pipeline Archive", "", "Closed applications moved out of `applications/PIPELINE.md`. Oldest first.", ""]
+            + table) + "\n", encoding="utf-8")
         PIPELINE.write_text("\n".join(kept) + "\n", encoding="utf-8")
     return report, len(moved)
 

@@ -20,4 +20,4 @@ Run about once a month, or when `progress/daily-log.md` or the pipeline gets lon
 - Company folders stay where they are. Their interview notes still feed `progress/weak-spots.md`.
 - Do not read the archive files in normal sessions. Open one only if I ask about something old.
 - A closed row with no `YYYY-MM-DD` date is left in place. Fix its date, then run again.
-- Only log sections headed `## YYYY-MM-DD` are archived. A section with any other heading stays in the log.
+- Only log sections headed `## YYYY-MM-DD` are archived. An entry ends at the next `#` or `##` heading, and a section with any other heading stays in the log.

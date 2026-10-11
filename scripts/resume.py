@@ -168,7 +168,7 @@ def export_resume(company=None, paper="letter", file=None, role=None):
     source, subfolder = source_and_folder(company, role, file)
     if not source.exists():
         raise ExportError(f"Resume not found: {display_path(source)}")
-    raw = source.read_text(encoding="utf-8")
+    raw = source.read_text(encoding="utf-8", errors="replace")
     if RESUME_PLACEHOLDER in raw:
         raise ExportError(f"{display_path(source)} is still the empty template. Type `setup` in your AI tool first.")
 
