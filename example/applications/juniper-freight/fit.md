@@ -1,6 +1,6 @@
 # Fit: Juniper Freight
 
-Matched target role: **Product Manager**. Fit: 2 of 4 required items. Decision: apply only because both gaps are already being worked on.
+Matched target role: **Product Manager**. Fit: 2/4 required items. Decision: apply only because both gaps are already being worked on.
 
 | Required | Met | Evidence |
 |---|---|---|

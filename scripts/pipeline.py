@@ -12,6 +12,7 @@ Needs Python 3.8+ and nothing else. Dates in the table must be YYYY-MM-DD.
 
 import argparse
 import html
+import re
 import sys
 import webbrowser
 from datetime import date
@@ -41,6 +42,24 @@ def normalise_stage(text):
     known = {stage.lower(): stage for stage in STAGES}
     known.update(STAGE_ALIASES)
     return known.get(text.strip().lower(), text.strip())
+
+
+def fit_percent(text):
+    """A fit score such as "4/5" or "80%" as a whole percentage, or None if it is blank or not a score."""
+    fraction = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", text)
+    if fraction and 0 < int(fraction.group(2)) and int(fraction.group(1)) <= int(fraction.group(2)):
+        return round(100 * int(fraction.group(1)) / int(fraction.group(2)))
+    percent = re.fullmatch(r"\s*(\d{1,3})\s*%\s*", text)
+    if percent and int(percent.group(1)) <= 100:
+        return int(percent.group(1))
+    return None
+
+
+def fit_label(row):
+    """The fit score as shown to the user: "4/5 (80%)", "80%", or "" when there is none."""
+    if row.get("fit_percent") is None:
+        return row.get("fit", "")
+    return row["fit"] if "%" in row["fit"] else f"{row['fit'].replace(' ', '')} ({row['fit_percent']}%)"
 
 
 def read_rows(path):
@@ -73,6 +92,10 @@ def enrich(rows, today):
             if row.get(field) and not parse_date(row[field]):
                 row["issues"].append(f"{field} '{row[field]}' is not YYYY-MM-DD")
         row["closed"] = row["stage"] in CLOSED
+        row["fit"] = row.get("fit", "").strip()
+        row["fit_percent"] = fit_percent(row["fit"])
+        if row["fit"] and row["fit_percent"] is None:
+            row["issues"].append(f"fit '{row['fit']}' is not a score like 4/5 or 80%")
         # The furthest stage reached. A closed row keeps it in the Furthest column, so a later
         # rejection does not erase the interview or offer from the progress totals.
         recorded = normalise_stage(row.get("furthest", ""))
@@ -124,7 +147,9 @@ def print_terminal(rows):
     print("  " + "  ".join(f"{stage}: {n}" for stage, n in stage_counts(rows)))
     print()
 
-    columns = [("company", "Company", 24), ("role", "Role", 28), ("stage", "Stage", 10),
+    for row in rows:
+        row["fit shown"] = fit_label(row)
+    columns = [("company", "Company", 24), ("role", "Role", 28), ("fit shown", "Fit", 11), ("stage", "Stage", 10),
                ("applied", "Applied", 10), ("due", "Due", 10),
                ("next action", "Next action", 34), ("flag", "Attention", 14)]
     widths = [min(limit, max(len(title), *(len(r.get(key, "")) for r in rows)))
@@ -198,7 +223,7 @@ def html_table(rows):
     if not rows:
         return '<div class="empty">No applications yet. Add one with <code>apply: [company]</code>.</div>'
     esc = html.escape
-    head = ("<tr><th>Company</th><th>Role</th><th>Stage</th><th>Applied</th><th>Last contact</th>"
+    head = ("<tr><th>Company</th><th>Role</th><th>Fit</th><th>Stage</th><th>Applied</th><th>Last contact</th>"
             "<th>Next action</th><th>Due</th><th>Attention</th></tr>")
     body = []
     for r in rows:
@@ -206,6 +231,7 @@ def html_table(rows):
         body.append(
             f'<tr class="{"closed" if r["closed"] else ""}">'
             f'<td><b>{esc(r.get("company", ""))}</b></td><td>{esc(r.get("role", ""))}</td>'
+            f'<td class="nowrap">{esc(fit_label(r))}</td>'
             f'<td><span class="pill{" closed" if r["closed"] else ""}">{esc(r["stage"])}</span></td>'
             f'<td class="nowrap">{esc(r.get("applied", ""))}</td>'
             f'<td class="nowrap">{esc(r.get("last contact", ""))}</td>'

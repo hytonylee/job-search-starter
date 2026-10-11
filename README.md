@@ -44,7 +44,7 @@ Everything serves one loop:
 
 1. **Seed.** Your LinkedIn export, or a pasted resume, becomes your master resume.
 2. **Audit.** Every resume line gets evidence or gets cut.
-3. **Apply.** Each real posting gets a folder, a fit check, a tailored resume and a row in the pipeline.
+3. **Apply.** Each real posting gets a folder, a fit score, a tailored resume and a row in the pipeline.
 4. **Prepare.** Company research, interview stories and practice exercises for the roles you are targeting.
 5. **Collect gaps.** Every posting and every interview adds evidence to a ranked gap list.
 6. **Plan the day.** From the pipeline and the gap list, not from mood.
@@ -126,7 +126,7 @@ If the launcher does not start:
 | Tab | What you see |
 |---|---|
 | **Start** | The onboarding button (it explains how to get an AI tool, shows where this folder is on your computer and how to open it, and gives the first message to paste), a setup checklist that ticks itself off, and your target roles |
-| **Pipeline** | Counts per stage, what needs attention, and every application in a table you can sort by clicking a column heading |
+| **Pipeline** | Counts per stage, what needs attention, and every application with its fit score, in a table you can sort by clicking a column heading |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, research, interview notes, and a PDF export button |
 | **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview. A document that is still an empty template says what will fill it |
 | **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |
@@ -218,6 +218,8 @@ python3 scripts/pipeline.py --file x.md   # reads a different pipeline file
 ```
 
 Shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates.
+
+Each row carries a **Fit** score, written like `4/5`: the number of the posting's required items you meet with evidence, out of the number it lists. `apply` works it out and records it, and the dashboard colours it green from 70%, amber from 50% and grey below, matching the screening rubric's apply-or-skip thresholds.
 
 The stages are Drafted, Applied, Screen (the first call), Interview (any round after that), Final and Offer, and a row is closed as Rejected, Withdrawn or No reply. When a row is closed, its **Furthest** column records the stage it had reached, so an interview or an offer still counts in your totals after a rejection.
 

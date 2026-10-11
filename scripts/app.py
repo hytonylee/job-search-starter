@@ -136,8 +136,9 @@ def pipeline_state(root):
         rows = pipeline_rows(root)
     except pipeline.PipelineError as error:
         return {"rows": [], "counts": [], "problems": [str(error)]}
-    keys = ("company", "role", "stage", "applied", "last contact", "next action", "due", "source", "flag", "closed")
-    return {"rows": [{k: r.get(k, "") for k in keys} for r in rows],
+    keys = ("company", "role", "fit", "fit_percent", "stage", "applied", "last contact", "next action", "due",
+            "source", "flag", "closed")
+    return {"rows": [dict({k: r.get(k, "") for k in keys}, fit_label=pipeline.fit_label(r)) for r in rows],
             "counts": pipeline.stage_counts(rows),
             "problems": pipeline.problems(rows)}
 

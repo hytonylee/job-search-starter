@@ -138,6 +138,13 @@ function table(headers, rows, rowClass) {
     el("tbody", {}, rows.map((cells, i) => el("tr", { class: rowClass ? rowClass(i) : null }, cells.map(c => el("td", {}, c)))))));
 }
 
+// The fit score: how many of the posting's required items are met. Green from 70%, amber from 50%, grey below.
+function fitPill(row) {
+  if (!row || !row.fit_label) return "";
+  const percent = row.fit_percent;
+  const tone = percent == null || percent === "" ? " closed" : percent >= 70 ? "" : percent >= 50 ? " warn" : " closed";
+  return el("span", { class: "pill" + tone, title: "Required items met, out of the number the posting lists" }, row.fit_label);
+}
 function stagePill(row) { return el("span", { class: "pill" + (row.closed ? " closed" : "") }, row.stage || "no stage"); }
 
 /* ---------- Start ---------- */
@@ -241,7 +248,7 @@ function viewStart() {
 }
 
 /* ---------- Pipeline ---------- */
-const PIPELINE_COLUMNS = [["company", "Company"], ["role", "Role"], ["stage", "Stage"], ["applied", "Applied"],
+const PIPELINE_COLUMNS = [["company", "Company"], ["role", "Role"], ["fit", "Fit"], ["stage", "Stage"], ["applied", "Applied"],
   ["last contact", "Last contact"], ["next action", "Next action"], ["due", "Due"], ["flag", "Attention"]];
 
 // Rows in the order chosen by clicking a column heading. With no choice, the order the dashboard computed
@@ -252,6 +259,7 @@ function sortedRows(rows) {
   const stageRank = {};                                 // stages in pipeline order, taken from the default row order
   state.pipeline.rows.forEach((r, i) => { if (!(r.stage in stageRank)) stageRank[r.stage] = i; });
   const value = r => sort.key === "stage" ? stageRank[r.stage]
+    : sort.key === "fit" ? (r.fit_percent ?? "")
     : sort.key === "flag" ? (r.flag ? -(parseInt(r.flag.replace(/\D+/g, ""), 10) || 0) : "")   // longest wait first
     : (r[sort.key] || "");
   const direction = sort.descending ? -1 : 1;
@@ -278,7 +286,7 @@ function pipelineTable(rows, sortable) {
   return el("div", { class: "wrap" }, el("table", {},
     el("thead", {}, el("tr", {}, PIPELINE_COLUMNS.map(heading))),
     el("tbody", {}, shown.map(r => el("tr", { class: r.closed ? "closed" : null },
-      el("td", {}, el("b", {}, r.company)), el("td", {}, r.role), el("td", {}, stagePill(r)),
+      el("td", {}, el("b", {}, r.company)), el("td", {}, r.role), el("td", { class: "nowrap" }, fitPill(r)), el("td", {}, stagePill(r)),
       el("td", { class: "nowrap" }, r.applied), el("td", { class: "nowrap" }, r["last contact"]),
       el("td", {}, r["next action"]), el("td", { class: "nowrap" }, r.due),
       el("td", {}, r.flag ? el("span", { class: "pill warn" }, r.flag) : ""))))));
@@ -351,6 +359,7 @@ function viewApplications() {
       el("button", { "aria-current": a.name === app.name ? "true" : null, onclick: () => { ui.company = a.name; ui.file = null; render(); } }, a.name))),
     el("div", {},
       el("div", { class: "row" }, el("h2", { style: "margin:0" }, app.name), row ? stagePill(row) : null,
+        row && row.fit_label ? [el("span", { class: "muted small" }, "Fit"), fitPill(row)] : null,
         row && row.flag ? el("span", { class: "pill warn" }, row.flag) : null),
       row ? el("p", { class: "muted" }, [row.role, row["next action"] && "Next: " + row["next action"], row.due && "due " + row.due].filter(Boolean).join(" · ")) : null,
       el("div", { class: "row" },
@@ -440,7 +449,7 @@ const GLOSSARY = [
   ["Stage", "Where an application stands: Drafted, Applied, Screen (first call), Interview, Final, Offer, or closed as Rejected, Withdrawn or No reply."],
   ["Master resume", "Your full resume, with every claim checked. Every other version is made from it."],
   ["Role version", "A copy of the master resume arranged for one kind of job you are targeting."],
-  ["Fit", "A side-by-side check of what a posting requires against what you can show evidence for."],
+  ["Fit", "A side-by-side check of what a posting requires against what you can show evidence for. The fit score, such as 4/5, is how many required items you meet."],
   ["Screening rubric", "Your own rules for deciding in two minutes whether a posting is worth applying to."],
   ["Gap", "A skill that real postings or interviews showed you are missing. Gaps are ranked by how often they come up."],
   ["Story", "A real example from your work, told as Situation, Task, Action, Result (STAR), for questions like \"tell me about a time you...\""],

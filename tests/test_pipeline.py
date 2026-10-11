@@ -8,16 +8,16 @@ import pipeline
 
 TABLE = """# Pipeline
 
-| Company | Role | Stage | Furthest | Applied | Last contact | Next action | Due | Source |
-|---|---|---|---|---|---|---|---|---|
-| Acme | PM | screen | | 2026-03-01 | 2026-03-10 | Prep | 2026-03-25 | x |
-| Late | PM | Applied | | 2026-03-01 | | Follow up | 2026-03-15 | x |
-| Quiet | PM | Applied | | 2026-02-20 | | | | x |
-| Gone | PM | Rejected | Technical | 2026-02-01 | 2026-02-20 | | | x |
-| Won | PM | Withdrawn | Offer | 2026-02-01 | 2026-02-25 | | | x |
-|  | Orphan | Applied | | 2026-03-01 | | | | x |
-| Odd | PM | interviewing | | Mar 3 | | | | x |
-| | | | | | | | | |
+| Company | Role | Fit | Stage | Furthest | Applied | Last contact | Next action | Due | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| Acme | PM | 4/5 | screen | | 2026-03-01 | 2026-03-10 | Prep | 2026-03-25 | x |
+| Late | PM | 75% | Applied | | 2026-03-01 | | Follow up | 2026-03-15 | x |
+| Quiet | PM | | Applied | | 2026-02-20 | | | | x |
+| Gone | PM | 2 / 4 | Rejected | Technical | 2026-02-01 | 2026-02-20 | | | x |
+| Won | PM | strong | Withdrawn | Offer | 2026-02-01 | 2026-02-25 | | | x |
+|  | Orphan | 6/5 | Applied | | 2026-03-01 | | | | x |
+| Odd | PM | 0/3 | interviewing | | Mar 3 | | | | x |
+| | | | | | | | | | |
 """
 
 
@@ -46,6 +46,19 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(self.rows["Gone"]["furthest"], "Interview")  # "Technical" is the old name
         self.assertEqual(self.rows["Won"]["furthest"], "Offer")
         self.assertEqual(self.rows["Acme"]["furthest"], "Screen")
+
+    def test_fit_score_is_read_as_a_percentage(self):
+        percent = {name: row["fit_percent"] for name, row in self.rows.items()}
+        self.assertEqual((percent["Acme"], percent["Late"], percent["Gone"], percent["Odd"]), (80, 75, 50, 0))
+        self.assertIsNone(percent["Quiet"])            # blank is allowed
+        self.assertIsNone(percent["Won"])              # not a score
+        self.assertEqual(pipeline.fit_label(self.rows["Acme"]), "4/5 (80%)")
+        self.assertEqual(pipeline.fit_label(self.rows["Gone"]), "2/4 (50%)")
+        self.assertEqual(pipeline.fit_label(self.rows["Late"]), "75%")
+        self.assertEqual(pipeline.fit_label(self.rows["Quiet"]), "")
+        problems = " ".join(pipeline.problems(list(self.rows.values())))
+        self.assertIn("fit 'strong' is not a score", problems)
+        self.assertIn("fit '6/5' is not a score", problems)
 
     def test_problems_are_reported_not_dropped(self):
         problems = " ".join(pipeline.problems(list(self.rows.values())))

@@ -1,6 +1,6 @@
 # Fit: Lumen Ledger
 
-Matched target role: **Growth Product Manager**. Fit: 4 of 5 required items. Decision: apply.
+Matched target role: **Growth Product Manager**. Fit: 4/5 required items. Decision: apply.
 
 | Required | Met | Evidence |
 |---|---|---|

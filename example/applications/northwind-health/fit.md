@@ -1,6 +1,6 @@
 # Fit: Northwind Health
 
-Matched target role: **Product Manager**. Fit: 5 of 5 required items. Decision: apply.
+Matched target role: **Product Manager**. Fit: 5/5 required items. Decision: apply.
 
 | Required | Met | Evidence |
 |---|---|---|
