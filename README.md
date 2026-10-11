@@ -2,6 +2,22 @@
 
 A folder of plain text files that turns an AI coding tool (Codex, Cursor or Claude Code) into a job-search coach that remembers your history. The AI reads `AGENTS.md` at the start of every session, so it knows who you are, where every application stands, and which gaps real postings have exposed. A local dashboard lets you read all of it in your browser.
 
+## What it looks like
+
+These show the dashboard with the built-in example, a fictional candidate. Nothing in them is real.
+
+**Pipeline.** Every application with its fit score and stage, what needs attention, and a table you can sort.
+
+![The Pipeline tab: counts per stage, two applications needing attention, and a sortable table of all applications with fit scores](docs/screenshots/pipeline.png)
+
+**Progress.** Totals, a funnel showing how far each application got and how it ended, and practice scores over time.
+
+![The Progress tab: seven summary figures, a funnel with one bar per stage from Sent to Offer, and a table of practice sessions with scores](docs/screenshots/progress.png)
+
+**Start.** A setup checklist that ticks itself off, and your target roles. For a new user this tab also holds the onboarding button.
+
+![The Start tab in the example: a note introducing the fictional candidate, a seven-step setup checklist with every step done, and two target roles](docs/screenshots/start.png)
+
 ## Where this came from
 
 I built the original version of this for my own job search as a product engineer, and kept changing it as I learned what worked. This repo is the reusable part of that setup with everything personal removed.
@@ -213,6 +229,7 @@ scripts/             dashboard, pipeline viewer, resume export, story coverage, 
 ui/                  the dashboard page
 start/               double-click launchers for the dashboard (Mac and Windows)
 example/             a fictional candidate for the dashboard's "See an example" view
+docs/                screenshots used in this README
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
@@ -331,7 +348,7 @@ Checks the scripts against temporary copies, never your files. Run it after chan
 - **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
 - **Native commands per tool.** Slash commands for Cursor and Codex that wrap each mode, so the right file is always loaded.
 - **More modes.** Offer review and negotiation, networking and referral tracking, recruiter reply drafting, a weekly review.
-- **More examples.** A second fictional candidate in an engineering role, and screenshots of the dashboard in this README.
+- **More examples.** A second fictional candidate in an engineering role.
 - **Tested notes per tool.** What actually happens in Codex and Cursor, once someone has run it there.
 
 If you improve it, a pull request to the template is welcome. Keep your personal files out of it.

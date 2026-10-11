@@ -19,7 +19,7 @@ Each mode file names the other files it needs. If I ask for something in plain w
 - `progress/`: `daily-log.md` (newest on top), `weak-spots.md` (ranked gaps), `practice-log.md` (scores)
 - `notes/INDEX.md`: one line per saved note. Open a note only if it is relevant
 - `scripts/`: run these instead of reading the files they summarise. `python3 scripts/commands.py` lists them. On Windows use `py -3` if `python3` is missing
-- Do not read unless a mode says so: `roles/`, `_archive/` folders, `tests/`, `ui/`, `start/`, `output/` (generated, never edit), `example/` (a fictional candidate, never mine)
+- Do not read unless a mode says so: `roles/`, `_archive/` folders, `tests/`, `ui/`, `start/`, `docs/`, `output/` (generated, never edit), `example/` (a fictional candidate, never mine)
 
 New files go in the folder they belong to, never at the top level.
 
