@@ -11,7 +11,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | Keyword | File | Purpose |
 |---|---|---|
 | `help` | `modes/help.md` | List every keyword and script command (also: `commands`) |
-| `setup` | `modes/setup.md` | First session: LinkedIn export to resume |
+| `setup` | `modes/setup.md` | Onboarding interview: sets the project up in seven steps |
 | `roles` | `modes/roles.md` | Tailor profile, practice and rubric to my target roles |
 | `audit` | `modes/audit.md` | Evidence check on every resume line |
 | `apply: [company]` | `modes/apply.md` | Screen, fit, tailor, track |
