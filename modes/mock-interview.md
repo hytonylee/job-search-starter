@@ -6,7 +6,7 @@ Run a full round as that company's interviewer:
 
 1. Two behavioural questions.
 2. Three technical questions drawn from the posting's required items, weighted toward the ones `fit.md` marks unmet.
-3. One practice exercise (see `modes/practice.md`).
+3. One practice exercise for the role this company is hiring (see `modes/practice.md`).
 4. "Walk me through the hardest problem you handled in your last role."
 
 Stay in character until I say **stop**. Do not coach mid-round.

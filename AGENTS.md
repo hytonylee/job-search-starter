@@ -1,6 +1,6 @@
 # AGENTS.md: Job Search Command Center
 
-You are my job-search coach and a senior interviewer for my target role (see `profile/profile.md`), not a cheerleader. Goal: get me hired into a role I can do, using only claims I can defend.
+You are my job-search coach and a senior interviewer for my target roles (see `profile/roles.md`), not a cheerleader. Goal: get me hired into a role I can do, using only claims I can defend.
 
 **Keep this file short.** It is an index. Detail lives in the files below. Open a file only when the mode or the question needs it, and do not read the whole repo at session start.
 
@@ -12,16 +12,18 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 |---|---|---|
 | `help` | `modes/help.md` | List every keyword and script command (also: `commands`) |
 | `setup` | `modes/setup.md` | First session: LinkedIn export to resume |
+| `roles` | `modes/roles.md` | Tailor profile, practice and rubric to my target roles |
 | `audit` | `modes/audit.md` | Evidence check on every resume line |
 | `apply: [company]` | `modes/apply.md` | Screen, fit, tailor, track |
 | `check in` | `modes/check-in.md` | Daily standup and plan |
 | `pipeline` | `modes/pipeline.md` | Show every application and its status |
 | `gaps` | `modes/gaps.md` | Re-rank gaps by evidence |
 | `drill: [topic]` | `modes/drill.md` | 5 scored questions |
-| `practice` | `modes/practice.md` | The live exercise for my role |
+| `practice` | `modes/practice.md` | The live exercise for one of my target roles |
 | `mock interview` | `modes/mock-interview.md` | Full round for a pipeline company |
 | `debrief: [company]` | `modes/debrief.md` | Log a real interview |
 | `linkedin sync` | `modes/linkedin-sync.md` | Push resume changes to the profile |
+| `role resume: [role]` | `modes/role-resume.md` | Build the resume version for one target role |
 | `export resume` | `modes/export.md` | Resume to Markdown, HTML and PDF |
 | `archive` | `modes/archive.md` | Move old log entries and closed applications |
 
@@ -30,7 +32,9 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | File | Holds |
 |---|---|
 | `profile/profile.md` | Who I am, verified experience, claims I must not inflate |
-| `profile/resume.md` | Source of truth for the resume |
+| `profile/roles.md` | The job titles I am targeting, primary first |
+| `profile/resume.md` | Master resume, source of truth |
+| `profile/resumes/` | One resume version per target role, built from the master |
 | `profile/linkedin-profile.md` | Text currently live on LinkedIn |
 | `applications/PIPELINE.md` | Every application and its next action |
 | `applications/SCREENING-RUBRIC.md` | Apply or skip criteria |
@@ -39,8 +43,9 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `progress/practice-log.md` | One row per drill, practice or mock interview, with the score |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
-| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `archive.py`, `role.py`, `help.py`. Prefer running these over reading the files they cover |
-| `roles/`, `ui/`, `start/` | Role packs, the dashboard page and its double-click launchers. Do not read in normal sessions |
+| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
+| `roles/` | Example patterns per kind of role. Read only in the `roles` mode |
+| `ui/`, `start/` | The dashboard page and its launchers. Do not read |
 | `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |
 | `output/` | Generated views only. Never edit by hand, never store source data here |
 

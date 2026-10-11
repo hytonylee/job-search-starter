@@ -19,7 +19,3 @@ The live exercise for a Data Analyst, Data Scientist interview: a SQL and analys
 I do the real analysis: write the queries from scratch on a public dataset and write up the finding in five sentences. Reading and watching do not count.
 
 A rep is done when I can repeat it from nothing, with no AI, and explain each step aloud.
-
-## Log it
-
-Add a row to `progress/practice-log.md`: today's date as YYYY-MM-DD, `practice`, the topic, the average score out of 5 as a number, and the weakest point in a few words.

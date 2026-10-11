@@ -4,10 +4,12 @@
 Usage:
   python3 scripts/resume.py                export profile/resume.md
   python3 scripts/resume.py acme           export applications/acme/resume.md
+  python3 scripts/resume.py --role frontend-engineer   export profile/resumes/frontend-engineer.md
   python3 scripts/resume.py acme --open    export, then open the result
   python3 scripts/resume.py --paper a4     A4 instead of US Letter
 
-Files are written to output/resume/general/ or output/resume/<company>/ and are
+Files are written to output/resume/general/, output/resume/<role>/ or
+output/resume/<company>/ and are
 named after the first "# Heading" in the resume, e.g. Jane-Doe-Resume.pdf.
 
 Needs Python 3.8+. The PDF step uses a Chromium-based browser that is already
@@ -31,6 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BASE = ROOT / "profile" / "resume.md"
 APPLICATIONS = ROOT / "applications"
+ROLE_RESUMES = ROOT / "profile" / "resumes"
 OUTPUT = ROOT / "output" / "resume"
 
 BROWSER_PATHS = [
@@ -201,9 +204,17 @@ def show(path):
         return str(path)
 
 
-def export_resume(company=None, paper="letter", file=None):
+def role_versions():
+    """Names of the per-role resume versions in profile/resumes/."""
+    return sorted(p.stem for p in ROLE_RESUMES.glob("*.md") if p.name != "README.md")
+
+
+def export_resume(company=None, paper="letter", file=None, role=None):
     """Write the .md, .html and .pdf. Returns their paths and any PDF failure reason."""
-    source = file or pick_source(company)
+    if role and role not in role_versions():
+        available = ", ".join(role_versions()) or "none yet. Create one with:  role resume: [role]"
+        raise ExportError(f"No resume version named '{role}'. Available: {available}")
+    source = file or (ROLE_RESUMES / f"{role}.md" if role else pick_source(company))
     if not source.exists():
         raise ExportError(f"Resume not found: {show(source)}")
     raw = source.read_text(encoding="utf-8")
@@ -215,7 +226,7 @@ def export_resume(company=None, paper="letter", file=None):
     name = re.sub(r"[^A-Za-z0-9]+", "-", title.group(1)).strip("-") if title else ""
     stem = f"{name}-Resume" if name and name.lower() != "resume" else "Resume"
 
-    folder = OUTPUT / (company or "general")
+    folder = OUTPUT / (company or role or "general")
     folder.mkdir(parents=True, exist_ok=True)
     md_path, html_path, pdf_path = (folder / f"{stem}{ext}" for ext in (".md", ".html", ".pdf"))
 
@@ -232,13 +243,14 @@ def export_resume(company=None, paper="letter", file=None):
 def main():
     parser = argparse.ArgumentParser(description="Export a resume to Markdown, HTML and PDF.")
     parser.add_argument("company", nargs="?", help="folder name under applications/ (omit for the base resume)")
+    parser.add_argument("--role", help="export the version in profile/resumes/ with this name")
     parser.add_argument("--paper", choices=["letter", "a4"], default="letter", help="page size (default: letter)")
     parser.add_argument("--open", action="store_true", help="open the PDF (or the HTML if no PDF was made)")
     parser.add_argument("--file", type=Path, help="export this Markdown file instead")
     args = parser.parse_args()
 
     try:
-        result = export_resume(args.company, args.paper, args.file)
+        result = export_resume(args.company, args.paper, args.file, args.role)
     except ExportError as error:
         sys.exit(str(error))
     print(f"Source:   {result['source']}")

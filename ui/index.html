@@ -123,35 +123,68 @@ function table(headers, rows, rowClass) {
 function stagePill(row) { return el("span", { class: "pill" + (row.closed ? " closed" : "") }, row.stage || "no stage"); }
 
 /* ---------- Start ---------- */
+let draftRoles = null;             // unsaved edits to the role list
 function viewStart() {
+  if (draftRoles === null) draftRoles = S.roles.slice();
+  const changed = JSON.stringify(draftRoles) !== JSON.stringify(S.roles);
+  const input = el("input", { type: "text", id: "role-input", maxlength: "60", placeholder: "e.g. Frontend Engineer",
+    "aria-label": "Add a role", style: "flex:1; min-width:200px; font:inherit; padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text)",
+    onkeydown: e => { if (e.key === "Enter") add(); } });
   const message = el("div");
-  const pick = id => (S.roles.find(r => r.id === id) || {}).label || id;
-  async function apply(force) {
-    const id = document.querySelector("input[name=role]:checked")?.value;
-    if (!id) return;
-    message.replaceChildren();
+  function add() {
+    const text = input.value.replace(/\s+/g, " ").trim();
+    if (!text) return;
+    if (!draftRoles.some(r => r.toLowerCase() === text.toLowerCase())) draftRoles.push(text);
+    render(); document.querySelector("#role-input")?.focus();
+  }
+  async function save() {
     try {
-      const result = await api("/api/role", { id, force });
-      if (!result.applied) {
-        message.append(el("div", { class: "notice" },
-          el("p", {}, "You have edited these files, and switching role replaces them: " + result.edited.join(", ") + "."),
-          el("p", {}, "They will be backed up to output/role-backup/ first."),
-          el("button", { class: "btn", onclick: () => apply(true) }, "Back up and switch to " + pick(id))));
-        return;
-      }
-      await load();
-      document.querySelector("#role-msg")?.append(el("div", { class: "notice ok" },
-        "Role set to " + pick(id) + "." + (result.backup ? " Your edited files are in " + result.backup + "/." : "")));
-    } catch (error) { message.append(el("div", { class: "notice" }, error.message)); }
+      const result = await api("/api/roles", { roles: draftRoles });
+      draftRoles = null; await load();
+      document.querySelector("#role-msg")?.append(el("div", { class: "notice ok" }, result.roles.length
+        ? "Saved. Now type roles in your AI tool so it tailors your profile, practice and rubric to: " + result.roles.join(", ") + "."
+        : "Saved. You have no target roles yet."));
+    } catch (error) { message.replaceChildren(el("div", { class: "notice" }, error.message)); }
   }
   const done = S.setup.filter(s => s.done).length;
+  const step = text => S.setup.find(x => x.text.startsWith(text))?.done;
+  const onboarded = step("Create your resume") && step("Tailor the profile");
+  const prompt = onboarded
+    ? ["Read AGENTS.md, then run the `check in` keyword by following modes/check-in.md.",
+       "When you have updated any files, tell me to press Refresh on the dashboard."].join("\n")
+    : ["Read AGENTS.md, then run the `setup` keyword by following modes/setup.md one step at a time.",
+       "",
+       S.roles.length ? "My target roles are already saved in profile/roles.md: " + S.roles.join(", ") + "."
+                      : "I have not chosen my target roles yet. Ask me which job titles I am applying for (there may be several) and save them to profile/roles.md.",
+       step("Save your LinkedIn") ? "My LinkedIn export is saved at profile/linkedin-export.pdf."
+                                  : "I have not saved my LinkedIn export yet. Start by telling me exactly how to get it and where to put it, then wait for me.",
+       "",
+       "Take me through all seven steps by asking me questions, one at a time, and wait for each answer. Do not invent anything about me.",
+       "After each step, save the files and tell me to press Refresh on the dashboard. At the end, tell me what to type next."].join("\n");
+  const promptBox = ui.showPrompt ? el("div", { class: "card", style: "margin-top:12px" },
+    el("p", { class: "muted small" }, "Open Codex, Cursor or Claude Code on this folder, paste this into the chat, and send it."),
+    el("pre", { id: "prompt-text", tabindex: "0" }, prompt),
+    el("div", { class: "row", style: "margin:10px 0 0" }, copyButton(prompt))) : null;
   return [
-    el("h2", {}, "1. Choose your role"),
+    el("h2", {}, onboarded ? "Start today's session" : "Start here"),
     el("div", { class: "card" },
-      el("p", { class: "muted" }, "This sets the experience table in your profile, the practice exercise, and the screening rubric."),
-      el("div", { class: "roles", role: "radiogroup", "aria-label": "Role" }, S.roles.map(r =>
-        el("label", {}, el("input", { type: "radio", name: "role", value: r.id, checked: r.id === S.role }), r.label))),
-      el("button", { class: "btn primary", onclick: () => apply(false) }, "Use this role"),
+      el("p", {}, onboarded
+        ? "You are set up. Get the prompt that starts today's check-in in your AI tool."
+        : "Setup is a short interview in your AI tool. This button writes the first message for you. The AI then asks you a series of questions and sets the project up step by step: your roles, your resume, the basics, an audit of your claims, and your first application. You can stop and pick it up later."),
+      el("button", { class: "btn primary", "aria-expanded": String(!!ui.showPrompt), onclick: () => { ui.showPrompt = !ui.showPrompt; render(); } },
+        ui.showPrompt ? "Hide the prompt" : (onboarded ? "Get today's prompt" : "Start project onboarding")),
+      promptBox),
+    el("h2", {}, "1. The roles you are applying for"),
+    el("div", { class: "card" },
+      el("p", { class: "muted" }, "Optional. Type the job titles in your own words, as many as you are really targeting; the first is your primary. If you skip this, the onboarding conversation asks you instead. Your AI tool uses them to shape your profile, practice exercises and screening rubric, and you can keep a resume version for each."),
+      draftRoles.length
+        ? el("div", { class: "row" }, draftRoles.map((r, i) => el("span", { class: "pill" + (i ? " closed" : "") }, r, " ",
+            el("button", { "aria-label": "Remove " + r, style: "border:0; background:none; color:inherit; cursor:pointer; font:inherit; padding:0 0 0 4px",
+              onclick: () => { draftRoles.splice(i, 1); render(); } }, "×"))))
+        : el("p", { class: "muted small" }, "No roles yet."),
+      el("div", { class: "row" }, input, el("button", { class: "btn", onclick: add }, "Add"),
+        el("button", { class: "btn primary", disabled: !changed, onclick: save }, "Save roles")),
+      changed ? el("p", { class: "muted small" }, "You have unsaved changes.") : null,
       message, el("div", { id: "role-msg" })),
     el("h2", {}, `2. Get set up (${done} of ${S.setup.length} done)`),
     el("div", { class: "card" }, el("ul", { class: "check" }, S.setup.map(step =>
@@ -282,13 +315,15 @@ function viewProgress() {
 /* ---------- Tools ---------- */
 function viewTools() {
   const exportResult = el("div"), archiveResult = el("div");
+  const source = el("select", { "aria-label": "Which resume" }, el("option", { value: "" }, "Master resume"),
+    S.versions.map(v => el("option", { value: v }, "Version: " + v)));
   const paper = el("select", { "aria-label": "Paper size" }, el("option", { value: "letter" }, "US Letter"), el("option", { value: "a4" }, "A4"));
   const days = el("input", { type: "number", min: "1", value: "30", style: "width:90px", "aria-label": "Days to keep" });
   const applyButton = el("button", { class: "btn", disabled: true, onclick: () => runArchive(true) }, "Archive now");
   async function exportBase() {
     exportResult.replaceChildren(el("p", { class: "muted" }, "Exporting…"));
     try {
-      const r = await api("/api/export", { paper: paper.value });
+      const r = await api("/api/export", { paper: paper.value, role: source.value });
       exportResult.replaceChildren(el("div", { class: "notice ok" }, "Exported. ",
         r.pdf ? el("a", { href: "/" + r.pdf, target: "_blank" }, "Open PDF") : el("a", { href: "/" + r.html, target: "_blank" }, "Open HTML"),
         r.pdf ? "" : " (no PDF: " + r.failure + ". Open the HTML and use Print, then Save as PDF.)"));
@@ -304,9 +339,9 @@ function viewTools() {
     } catch (error) { archiveResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
   }
   return [
-    el("h2", {}, "Export your base resume"),
-    el("div", { class: "card" }, el("div", { class: "row" }, paper, el("button", { class: "btn primary", onclick: exportBase }, "Export to PDF")),
-      el("p", { class: "muted small" }, "Exports profile/resume.md. Tailored resumes are exported from the Applications tab."), exportResult),
+    el("h2", {}, "Export a resume"),
+    el("div", { class: "card" }, el("div", { class: "row" }, source, paper, el("button", { class: "btn primary", onclick: exportBase }, "Export to PDF")),
+      el("p", { class: "muted small" }, "The master resume or a role version. Resumes tailored to one company are exported from the Applications tab."), exportResult),
     el("h2", {}, "Archive old entries"),
     el("div", { class: "card" }, el("div", { class: "row" }, "Keep the last", days, "days",
         el("button", { class: "btn primary", onclick: () => runArchive(false) }, "Preview"), applyButton),
@@ -326,8 +361,7 @@ function render() {
   if (!VIEWS[ui.tab]) ui.tab = "start";
   document.querySelector("#nav").replaceChildren(...TABS.map(([id, label]) =>
     el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; history.replaceState(null, "", "#" + id); render(); } }, label)));
-  const current = S.roles.find(r => r.id === S.role);
-  document.querySelector("#role-badge").textContent = current ? current.label : "No role chosen";
+  document.querySelector("#role-badge").textContent = S.roles.length ? S.roles.join(" · ") : "No roles yet";
   document.querySelector("#main").replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
 }
 

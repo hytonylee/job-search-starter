@@ -18,7 +18,3 @@ The live exercise for a Product Designer interview: a portfolio walkthrough. Rea
 I produce the real artifact: rewrite one case study to fit five minutes, or redesign one real flow with the reasoning written down. Reading and watching do not count.
 
 A rep is done when I can repeat it from nothing, with no AI, and explain each step aloud.
-
-## Log it
-
-Add a row to `progress/practice-log.md`: today's date as YYYY-MM-DD, `practice`, the topic, the average score out of 5 as a number, and the weakest point in a few words.

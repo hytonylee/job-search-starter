@@ -12,4 +12,4 @@ Reads: `profile/resume.md`, `profile/linkedin-profile.md`, `profile/profile.md`.
 ## Rules
 
 - The same claims limits apply: nothing beyond `profile/profile.md`.
-- The headline names the target role and the two strongest verified tools, not a list of everything.
+- The headline names my primary target role from `profile/roles.md` and my two strongest verified skills, not a list of everything.

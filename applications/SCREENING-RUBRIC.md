@@ -7,8 +7,9 @@ Decide apply or skip in two minutes, before tailoring anything. Fill this in onc
 - [ ] Salary range tops out below my floor: [amount]
 - [ ] Location or on-site requirement I cannot meet: [fill in]
 - [ ] Requires a clearance, certification or work authorization I do not have: [fill in]
-- [ ] On-call terms I will not accept: [fill in]
 - [ ] [add your own]
+
+<!-- The `roles` keyword adds one hard stop per target role here, for me to fill in. -->
 
 ## Fit score
 
@@ -28,7 +29,7 @@ Count the posting's **required** items only. Ignore "nice to have."
 
 ## Signals to be careful with
 
-- "DevOps" that is really one person covering IT support, security and development
-- A long list of every cloud and tool with no sign of which ones they actually run
 - No salary range and no named team
 - Reposted every few weeks
+
+<!-- The `roles` keyword adds the warning signs specific to each target role here. -->

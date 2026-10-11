@@ -18,7 +18,3 @@ The live exercise for a DevOps, Platform, SRE interview: a troubleshooting scena
 I build or break something: write the Terraform, write the pipeline, kill the pod and recover it. Reading and watching do not count.
 
 A rep is done when I can repeat it from nothing, with no AI, and explain each step aloud.
-
-## Log it
-
-Add a row to `progress/practice-log.md`: today's date as YYYY-MM-DD, `practice`, the topic, the average score out of 5 as a number, and the weakest point in a few words.

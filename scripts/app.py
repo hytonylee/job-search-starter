@@ -24,8 +24,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 import archive
 import help as help_script
 import pipeline
+import re
 import resume
-import role
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "ui" / "index.html"
@@ -34,9 +34,17 @@ OUTPUT = ROOT / "output"
 READABLE = ("applications", "profile", "progress", "notes", "modes")  # folders the page may read .md from
 TOKEN = secrets.token_urlsafe(16)  # the page must send this back to change anything
 
+ROLES_FILE = ROOT / "profile" / "roles.md"
+ROLES_HEADER = """# Target Roles
+
+The job titles I am applying for, one per line. The first is my primary target.
+Edit this list on the dashboard's Start tab or right here, then type `roles` in the AI tool.
+
+"""
+
 PREP_DOCS = [
     ("Profile", "profile/profile.md"),
-    ("Resume", "profile/resume.md"),
+    ("Master resume", "profile/resume.md"),
     ("Gaps", "progress/weak-spots.md"),
     ("Practice exercise", "modes/practice.md"),
     ("Screening rubric", "applications/SCREENING-RUBRIC.md"),
@@ -85,6 +93,39 @@ def safe_md(relative):
     return path if allowed and path.suffix == ".md" and path.is_file() else None
 
 
+def target_roles():
+    """The roles listed in profile/roles.md, ignoring the placeholder line."""
+    if not ROLES_FILE.exists():
+        return []
+    lines = [line[2:].strip() for line in ROLES_FILE.read_text(encoding="utf-8").splitlines()
+             if line.startswith("- ")]
+    return [line for line in lines if line and not line.startswith("[")]
+
+
+def save_roles(roles):
+    """Write the role list. Returns the cleaned list, or raises ValueError."""
+    if not isinstance(roles, list):
+        raise ValueError("roles must be a list")
+    cleaned = []
+    for item in roles:
+        text = re.sub(r"[\r\n|`<>\[\]]", " ", str(item))
+        text = re.sub(r"\s+", " ", text).strip(" -")[:60]
+        if text and text.lower() not in [c.lower() for c in cleaned]:
+            cleaned.append(text)
+    if len(cleaned) > 8:
+        raise ValueError("Keep it to 8 roles or fewer. A focused search works better.")
+    body = "".join(f"- {role}\n" for role in cleaned) or "- [add a role, e.g. Frontend Engineer]\n"
+    ROLES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ROLES_FILE.write_text(ROLES_HEADER + body, encoding="utf-8")
+    return cleaned
+
+
+def roles_tailored():
+    """True once the `roles` keyword has written at least one practice exercise."""
+    exercises = resume.clean_markdown(read("modes/practice.md")).split("## Exercises")[-1]
+    return "###" in exercises
+
+
 def company_folders():
     return sorted(p for p in APPLICATIONS.glob("*") if p.is_dir() and not p.name.startswith("_"))
 
@@ -109,11 +150,15 @@ def setup_checklist():
     profile, rubric = read("profile/profile.md"), read("applications/SCREENING-RUBRIC.md")
     header = profile.split("## Verified experience")[0]
     return [
+        {"done": bool(target_roles()), "text": "Enter the roles you are applying for",
+         "hint": "Use the box above. Several roles are fine"},
         {"done": (ROOT / "profile" / "linkedin-export.pdf").exists(),
          "text": "Save your LinkedIn profile as a PDF",
          "hint": "On LinkedIn: your profile, Resources, Save to PDF. Put it in profile/ as linkedin-export.pdf"},
         {"done": bool(read("profile/resume.md")) and "Empty on purpose" not in read("profile/resume.md"),
          "text": "Create your resume from it", "hint": "Type setup in your AI tool"},
+        {"done": roles_tailored(), "text": "Tailor the profile, practice and rubric to your roles",
+         "hint": "setup does this. If you change your roles later, type roles in your AI tool"},
         {"done": bool(profile) and "[fill in]" not in header,
          "text": "Fill in and audit your profile", "hint": "Type audit in your AI tool"},
         {"done": bool(rubric) and "[amount]" not in rubric and "[fill in]" not in rubric,
@@ -139,7 +184,6 @@ def practice_log():
 
 
 def state():
-    current = role.current_role()
     apps = []
     for folder in company_folders():
         exported = sorted((OUTPUT / "resume" / folder.name).glob("*.pdf"))
@@ -151,12 +195,13 @@ def state():
     questions = [{"company": f.name, "html": render_md(read(f"applications/{f.name}/interview-notes.md"))}
                  for f in company_folders() if (f / "interview-notes.md").exists()]
     return {
-        "role": current,
-        "roles": [{"id": r, "label": label} for r, label in role.list_roles()],
+        "roles": target_roles(),
+        "versions": resume.role_versions(),
         "setup": setup_checklist(),
         "pipeline": pipeline_state(),
         "applications": apps,
-        "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (ROOT / path).exists()],
+        "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (ROOT / path).exists()]
+                + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md"} for name in resume.role_versions()],
         "questions": questions,
         "practice": practice_log(),
         "log": [{"date": d.isoformat(), "html": render_md(body)} for d, body in entries[:7]],
@@ -169,17 +214,18 @@ def state():
 
 def do_action(path, body):
     """Handle a POST. Returns (status, payload)."""
-    if path == "/api/role":
+    if path == "/api/roles":
         try:
-            return 200, role.apply_role(str(body.get("id", "")), bool(body.get("force")))
+            return 200, {"roles": save_roles(body.get("roles"))}
         except ValueError as error:
             return 400, {"error": str(error)}
     if path == "/api/export":
         company = body.get("company") or None
         if company and company not in [f.name for f in company_folders()]:
             return 400, {"error": "Unknown company folder"}
+        version = body.get("role") or None
         try:
-            return 200, resume.export_resume(company, "a4" if body.get("paper") == "a4" else "letter")
+            return 200, resume.export_resume(company, "a4" if body.get("paper") == "a4" else "letter", role=version)
         except resume.ExportError as error:
             return 400, {"error": str(error)}
     if path == "/api/archive":

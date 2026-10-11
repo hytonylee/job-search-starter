@@ -18,7 +18,3 @@ The live exercise for a Product Manager interview: a product case. Reads: `profi
 I produce the real artifact: a one-page PRD, a written teardown of a product, or a metric investigation with numbers. Reading and watching do not count.
 
 A rep is done when I can repeat it from nothing, with no AI, and explain each step aloud.
-
-## Log it
-
-Add a row to `progress/practice-log.md`: today's date as YYYY-MM-DD, `practice`, the topic, the average score out of 5 as a number, and the weakest point in a few words.

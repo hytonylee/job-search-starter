@@ -18,7 +18,3 @@ The live exercise for a Backend Engineer interview: a API design and debugging e
 I build it: a small service with a real database, the endpoint, and tests that fail when the logic is wrong. Reading and watching do not count.
 
 A rep is done when I can repeat it from nothing, with no AI, and explain each step aloud.
-
-## Log it
-
-Add a row to `progress/practice-log.md`: today's date as YYYY-MM-DD, `practice`, the topic, the average score out of 5 as a number, and the weakest point in a few words.

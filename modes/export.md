@@ -1,6 +1,6 @@
 # Mode: export resume
 
-`export resume` exports the base resume. `export resume: [company]` exports that company's tailored one. Reads: nothing.
+`export resume` exports the master resume. `export resume: [company]` exports that company's tailored one. For a role version, run `python3 scripts/resume.py --role [name]`. Reads: nothing.
 
 1. Run `python3 scripts/resume.py` or `python3 scripts/resume.py [company]`. Add `--paper a4` if I am applying outside North America.
 2. Show me the paths it printed. The files land in `output/resume/general/` or `output/resume/[company]/` as `.md`, `.html` and `.pdf`.

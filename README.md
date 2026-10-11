@@ -6,7 +6,7 @@ A folder of plain text files that turns an AI coding tool (Codex, Cursor, Claude
 
 I built the original version of this for my own job search as a product engineer, and kept changing it as I learned what worked. This repo is the reusable part of that setup with everything personal removed.
 
-Right now it is configured for a friend looking for a **DevOps** position, and it ships with role packs for frontend, backend, product, design and data as well. If you want to use it, follow the instructions below and **choose your role first** so it suits you. See [Choose your role](#choose-your-role).
+It began as a setup for a friend looking for a DevOps position and now works for any role, or several at once. You tell it the job titles you are targeting, in your own words, and it shapes itself around them. See [Your target roles](#your-target-roles).
 
 ## How it works
 
@@ -24,13 +24,13 @@ Everything serves one loop:
 ```
 AGENTS.md            the index the AI reads every session
 README.md            this file
-profile/             who you are: profile, resume, LinkedIn text and export
+profile/             who you are: target roles, profile, master resume, a resume version per role, LinkedIn text
 modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
 progress/            daily log and the ranked gap list
 notes/               long-term memory, one fact per file
-roles/               ready-made role packs: devops, frontend, backend, product, design, data
-scripts/             dashboard, pipeline viewer, resume export, archiving, role picker, help
+roles/               example patterns the AI adapts to your roles (devops, frontend, backend, product, design, data)
+scripts/             dashboard, pipeline viewer, resume export, archiving, help
 ui/                  the dashboard page
 start/               double-click launchers for the dashboard (Mac and Windows)
 output/              generated files: pipeline page, exported resumes (not committed)
@@ -47,8 +47,8 @@ Only `AGENTS.md` and `README.md` sit at the top level. Source files live in thei
    - **Codex:** run `codex` inside the folder. It reads `AGENTS.md` automatically.
    - **Cursor:** open the folder and use Agent mode. It reads `AGENTS.md` automatically.
    - **Claude Code:** run `claude` inside the folder. Create a `CLAUDE.md` containing the single line `@AGENTS.md`.
-5. Open [the dashboard](#the-dashboard) and [choose your role](#choose-your-role) on the Start tab.
-6. Type `setup` in your AI tool.
+5. Open [the dashboard](#the-dashboard) and press **Start project onboarding**. It gives you a first message to paste into your AI tool.
+6. Paste it. The AI asks you a series of questions and sets the project up step by step.
 
 ## The dashboard
 
@@ -74,36 +74,38 @@ If the launcher does not start:
 
 | Tab | What you see |
 |---|---|
-| **Start** | The role picker and a setup checklist that ticks itself off |
+| **Start** | The onboarding button, your target roles, and a setup checklist that ticks itself off |
 | **Pipeline** | Counts per stage, what needs attention, every application |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, interview notes, and a PDF export button |
-| **Prep** | Your profile, resume, gap list, practice exercise and every interview question you have logged, formatted for reading before an interview |
+| **Prep** | Your profile, master resume and role versions, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview |
 | **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
-| **Tools** | Resume export, archiving with a preview, and every keyword with a copy button |
+| **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
 
 The page reads your files and shows them. The coaching itself still happens in your AI tool: you type a keyword there, it updates the files, and you press **Refresh** here. To change a document, edit the file or ask the AI.
 
-## Choose your role
+## Your target roles
 
-Six role packs are included: **devops** (the default), **frontend**, **backend**, **product**, **design** and **data**. Pick one on the dashboard's Start tab, or in the terminal:
+Most people are not looking for one job title. You might be a frontend engineer who also applies to product engineer and full-stack roles, each with a different resume.
 
-```bash
-python3 scripts/role.py            # list roles and show the current one
-python3 scripts/role.py product    # switch
-```
+So there is no list to pick from. You type your roles in your own words, on the dashboard's Start tab or during onboarding, and they are saved in `profile/roles.md` with your primary one first. Then:
 
-Choosing a role replaces three files: the experience table in `profile/profile.md`, the live exercise in `modes/practice.md`, and `applications/SCREENING-RUBRIC.md`. The exercise differs by role: a troubleshooting scenario for DevOps, live coding for frontend, a product case for product, a portfolio walkthrough for design, a SQL case for data. Everything else is role-neutral.
+- **`roles`** tailors three things to them: the skill areas in your profile table, one live practice exercise per role, and role-specific lines in the screening rubric. It adds to what you have and never wipes it, so you can change roles mid-search.
+- **`role resume: [role]`** builds a resume version for one role in `profile/resumes/`, using the same verified facts as your master resume in a different order and emphasis.
+- **`apply`** says which of your roles a posting matches and starts from that role's resume version. Cover notes are written per company and never reused.
 
-Choose before you fill anything in. If you switch later, any of the three files you have edited is backed up to `output/role-backup/` first, and you will need to redo your profile.
-
-**Your role is not listed?** Copy a folder in `roles/`, rename it, and edit its three files. It appears in the picker straight away.
+The `roles/` folder holds example patterns for six kinds of job (devops, frontend, backend, product, design, data). The AI uses the closest one as a starting point and adapts it, so a "product engineer" gets something between the frontend and product patterns rather than a copy of either. To improve the starting point for a kind of role, edit its folder or add one.
 
 ## First session, 60 to 90 minutes
 
-1. `setup` turns the LinkedIn export into `profile/resume.md`.
-2. `audit` walks every line and asks for evidence. Expect it to cut things. That is the point.
-3. Fill in `applications/SCREENING-RUBRIC.md` with your own must-haves.
-4. `apply: [company]` on one real posting, start to finish.
+The onboarding (`setup`) is an interview in seven steps. It can be stopped and resumed.
+
+1. Your target roles.
+2. Your LinkedIn export, or a pasted resume if you have no profile.
+3. Your master resume, `profile/resume.md`, built from it.
+4. The basics: location, level, salary floor, and what makes a job an automatic no.
+5. Tailoring the profile, practice exercises and rubric to your roles.
+6. The audit: every resume line gets evidence or gets cut. Expect it to cut things. That is the point.
+7. Your first application, on one real posting, start to finish.
 
 ## Every day after
 
@@ -191,13 +193,14 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **Your data goes to your AI provider.** Whatever the tool reads is sent to that provider under its terms. Check them before adding anything sensitive.
 - **The AI tool still needs setting up.** The dashboard opens with a double-click, but Codex, Cursor or Claude Code has to be installed and opened on the folder, and Python has to be present. A non-technical user will want someone beside them for the first session.
 - **The Windows launcher is untested.** It was written and checked on a Mac. If it fails, run `py -3 scripts\app.py` in a Command Prompt from the repo folder and report what it prints.
-- **The dashboard is for reading.** Apart from the role picker, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
-- **The dashboard and role packs are new.** The page logic was tested with sample data but has had little real use. The five non-DevOps role packs were written from general knowledge of those interviews, not from a real search in each role, so expect to adjust them.
+- **The dashboard is for reading.** Apart from the role list, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
+- **The dashboard and role tailoring are new.** The page logic was tested with sample data but has had little real use. The role-specific material is written by your AI tool from the example patterns in `roles/`, which come from general knowledge of those interviews rather than a real search in each role. Read what it produces and correct it.
+- **Several roles means more upkeep.** Each role version of your resume has to be rebuilt when the master changes, and nothing does that for you.
 - **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.
 
 ## Ideas for improvement
 
-- **More role packs.** Product marketing, UX research, engineering management, QA, customer success, sales. Better still, packs reviewed by someone who hires for that role.
+- **More role patterns.** Product marketing, UX research, engineering management, QA, customer success, sales. Better still, patterns reviewed by someone who hires for that role.
 - **Editing from the dashboard.** Update a pipeline row, tick a rubric item or add a note without opening a file.
 - **A richer pipeline view.** Compute the weekly numbers and reply rate automatically, flag silence after interviews, and chart applications over time.
 - **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
