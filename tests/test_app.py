@@ -35,7 +35,9 @@ class Progress(unittest.TestCase):
                                 "applications/elsewhere/interview-notes.md": "notes"})
         with folder:
             # Acme (Screen), Gone (reached Interview), Won (reached Offer), plus the "elsewhere" folder with no row
-            self.assertEqual(app.progress_stats(root), {"applied": 4, "interviews": 4, "offers": 1})
+            stats = app.progress_stats(root)
+            self.assertEqual({k: stats[k] for k in ("applied", "interviews", "offers")}, {"applied": 4, "interviews": 4, "offers": 1})
+            self.assertEqual(stats["funnel"]["sent"], 4)
 
 
 class Roles(unittest.TestCase):

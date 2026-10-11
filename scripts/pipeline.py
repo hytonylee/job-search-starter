@@ -119,6 +119,42 @@ def enrich(rows, today):
     return sorted(rows, key=order)
 
 
+FUNNEL_LABELS = {"Applied": "Sent", "Screen": "First call", "Interview": "Interview", "Final": "Final round", "Offer": "Offer"}
+OUTCOMES = {"Rejected": "rejected", "Withdrawn": "withdrawn", "No reply": "no_reply"}
+
+
+def funnel(rows):
+    """How far every sent application got, and how each one ended.
+
+    For each stage from Sent to Offer: how many applications reached it, how many went on to the
+    next stage, and what happened to the ones that stopped there (still open, rejected, withdrawn,
+    no reply). Drafted rows are not counted as sent. A closed row with no Furthest value is taken
+    to have stopped right after it was sent, and is counted in "assumed".
+    """
+    stages = PROGRESSION[1:]  # Applied .. Offer
+    reached = {stage: 0 for stage in stages}
+    ended = {stage: {"open": 0, "rejected": 0, "withdrawn": 0, "no_reply": 0} for stage in stages}
+    drafted = assumed = 0
+    for row in rows:
+        if row["stage"] == "Drafted":
+            drafted += 1
+            continue
+        if row["stage"] not in STAGES:
+            continue  # an unknown stage is listed under "rows to fix", not guessed at
+        furthest = row.get("furthest") if row.get("furthest") in stages else "Applied"
+        if row["closed"] and row.get("furthest") not in stages:
+            assumed += 1
+        for stage in stages[: stages.index(furthest) + 1]:
+            reached[stage] += 1
+        ended[furthest][OUTCOMES.get(row["stage"], "open")] += 1
+    steps = []
+    for index, stage in enumerate(stages):
+        advanced = reached[stages[index + 1]] if index + 1 < len(stages) else 0
+        steps.append(dict(ended[stage], stage=stage, label=FUNNEL_LABELS[stage], reached=reached[stage], advanced=advanced))
+    totals = {key: sum(step[key] for step in steps) for key in ("open", "rejected", "withdrawn", "no_reply")}
+    return {"sent": reached["Applied"], "drafted": drafted, "assumed": assumed, "steps": steps, "totals": totals}
+
+
 def stage_counts(rows):
     counts = {}
     for row in rows:

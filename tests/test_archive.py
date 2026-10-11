@@ -118,7 +118,7 @@ class ArchiveMore(unittest.TestCase):
         self.assertEqual([r["company"] for r in rows if r["issues"]], [])   # one header, every row fits it
         self.assertEqual(len(rows), 3)
         self.assertEqual(app.progress_stats(self.root), before)
-        self.assertEqual(before, {"applied": 5, "interviews": 3, "offers": 1})
+        self.assertEqual({k: before[k] for k in ("applied", "interviews", "offers")}, {"applied": 5, "interviews": 3, "offers": 1})
 
     def test_run_keeps_days_in_range(self):
         archive.LOG.write_text("# Log\n", encoding="utf-8")

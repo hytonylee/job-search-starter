@@ -170,7 +170,8 @@ def progress_stats(root):
             from_notes += 1
     return {"applied": sum(1 for r in rows if r["stage"] in pipeline.STAGES and r["stage"] != "Drafted"),
             "interviews": len(interviewed) + from_notes,
-            "offers": sum(1 for r in rows if r["furthest"] == "Offer")}
+            "offers": sum(1 for r in rows if r["furthest"] == "Offer"),
+            "funnel": pipeline.funnel(rows)}
 
 
 def section(text, heading):

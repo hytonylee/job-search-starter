@@ -60,6 +60,30 @@ class Pipeline(unittest.TestCase):
         self.assertIn("fit 'strong' is not a score", problems)
         self.assertIn("fit '6/5' is not a score", problems)
 
+    def test_funnel_counts_how_far_each_application_got_and_how_it_ended(self):
+        result = pipeline.funnel(list(self.rows.values()))
+        steps = {step["stage"]: step for step in result["steps"]}
+        # Sent: Acme, Late, Quiet, Gone, Won and the orphan row. "Odd" has an unknown stage and is left out.
+        self.assertEqual(result["sent"], 6)
+        self.assertEqual([steps[s]["reached"] for s in ("Applied", "Screen", "Interview", "Final", "Offer")], [6, 3, 2, 1, 1])
+        self.assertEqual([steps[s]["advanced"] for s in ("Applied", "Screen", "Interview", "Final", "Offer")], [3, 2, 1, 1, 0])
+        self.assertEqual(steps["Applied"]["open"], 3)           # Late, Quiet, orphan: still waiting
+        self.assertEqual(steps["Screen"]["open"], 1)            # Acme
+        self.assertEqual(steps["Interview"]["rejected"], 1)     # Gone, rejected after an interview
+        self.assertEqual(steps["Offer"]["withdrawn"], 1)        # Won, withdrew at the offer
+        self.assertEqual(result["totals"], {"open": 4, "rejected": 1, "withdrawn": 1, "no_reply": 0})
+        for step in result["steps"]:                             # every application is accounted for exactly once
+            self.assertEqual(step["reached"], step["advanced"] + step["open"] + step["rejected"] + step["withdrawn"] + step["no_reply"])
+
+    def test_funnel_leaves_out_drafts_and_flags_closed_rows_with_no_furthest(self):
+        table = ("| Company | Role | Stage | Furthest |\n|---|---|---|---|\n| A | PM | Drafted | |\n| B | PM | Rejected | |\n"
+                 "| C | PM | No reply | Applied |\n")
+        result = pipeline.funnel(list(rows_from(table).values()))
+        self.assertEqual((result["sent"], result["drafted"], result["assumed"]), (2, 1, 1))
+        self.assertEqual(result["steps"][0]["rejected"], 1)
+        self.assertEqual(result["steps"][0]["no_reply"], 1)
+        self.assertEqual(pipeline.funnel([])["sent"], 0)
+
     def test_problems_are_reported_not_dropped(self):
         problems = " ".join(pipeline.problems(list(self.rows.values())))
         self.assertIn("has no company name", problems)

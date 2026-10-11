@@ -38,6 +38,17 @@
   th button.sort:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:3px; }
   th button.sort .arrow { width:.8em; font-size:10px; }
   td.nowrap { white-space:nowrap; }
+  /* funnel: one bar per stage, as long as the share of applications that reached it, split by what happened next */
+  .funnel { display:grid; grid-template-columns:max-content 1fr max-content; gap:8px 12px; align-items:center; }
+  .funnel .track { min-width:0; }
+  .funnel .bar { display:flex; height:26px; border-radius:6px; overflow:hidden; min-width:2px; }
+  .funnel .seg { display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#fff; min-width:0; overflow:hidden; }
+  .seg.advanced, .swatch.advanced { background:#2f8f5b; } .seg.open, .swatch.open { background:#3b78d8; }
+  .seg.rejected, .swatch.rejected { background:#c9483f; } .seg.withdrawn, .swatch.withdrawn { background:#77776f; }
+  .seg.no_reply, .swatch.no_reply { background:#d9a23a; } .seg.no_reply { color:#1c1c1a; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:14px 0 0; padding:0; list-style:none; font-size:13px; }
+  .legend li { display:flex; align-items:center; gap:6px; } .swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+  @media (max-width: 560px) { .funnel { grid-template-columns:1fr max-content; } .funnel .track { grid-column:1 / -1; } }
   tr:last-child td { border-bottom:0; } tr.closed td { color:var(--muted); }
   .pill { display:inline-block; padding:1px 9px; border-radius:99px; font-size:13px; white-space:nowrap; color:var(--ok); background:var(--ok-bg); }
   .pill.closed { color:var(--off); background:var(--off-bg); } .pill.warn { color:var(--warn); background:var(--warn-bg); }
@@ -418,6 +429,39 @@ function viewPrep() {
       body)];
 }
 
+/* ---------- Funnel (inside Progress) ---------- */
+const FUNNEL_PARTS = [["advanced", "Moved on to the next stage"], ["open", "Still open"], ["rejected", "Rejected"],
+                      ["withdrawn", "Withdrawn by me"], ["no_reply", "No reply"]];
+function funnelCard(funnel) {
+  if (!funnel || !funnel.sent) return el("div", { class: "card muted" },
+    "Nothing sent yet. Once you have applied to a few jobs, this shows how far each application got and how it ended.",
+    funnel && funnel.drafted ? " You have " + funnel.drafted + " drafted and not yet sent." : "");
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  const reached = stage => funnel.steps.find(step => step.stage === stage).reached;
+  const describe = step => FUNNEL_PARTS.filter(([key]) => step[key]).map(([key, label]) => step[key] + " " + label.toLowerCase()).join(", ");
+  return el("div", { class: "card" },
+    el("p", {}, "Of " + plural(funnel.sent, "application", "applications") + " sent, " + reached("Screen") + " reached a first call, "
+      + reached("Interview") + " an interview, " + reached("Final") + " a final round, and " + plural(reached("Offer"), "offer", "offers") + " came back."),
+    el("div", { class: "funnel" }, funnel.steps.map(step => [
+      el("div", {}, step.label),
+      el("div", { class: "track" },
+        // The bar's length is the share of sent applications that reached this stage. The text beside it says the same in words.
+        el("div", { class: "bar", role: "img", style: "width:" + Math.max(step.reached / funnel.sent * 100, step.reached ? 1 : 0) + "%",
+                    "aria-label": step.label + ": " + step.reached + " reached this stage. " + (describe(step) || "None") + "." },
+          FUNNEL_PARTS.filter(([key]) => step[key]).map(([key, label]) =>
+            el("div", { class: "seg " + key, style: "flex:" + step[key] + " 1 0", title: step[key] + " " + label.toLowerCase() },
+              step[key] / funnel.sent >= 0.05 ? step[key] : "")))),
+      el("div", { class: "muted small" }, el("b", {}, step.reached), step.reached ? " · " + describe(step) : "")])),
+    el("ul", { class: "legend", "aria-label": "What the colours mean" }, FUNNEL_PARTS.map(([key, label]) =>
+      el("li", {}, el("span", { class: "swatch " + key, "aria-hidden": "true" }), label))),
+    el("p", { class: "muted small", style: "margin:12px 0 0" },
+      "So far: " + funnel.totals.open + " still open, " + funnel.totals.rejected + " rejected, " + funnel.totals.withdrawn + " withdrawn, "
+      + funnel.totals.no_reply + " with no reply. Archived applications are included."
+      + (funnel.drafted ? " " + plural(funnel.drafted, "draft is", "drafts are") + " not counted until sent." : "")
+      + (funnel.assumed ? " " + plural(funnel.assumed, "closed application has", "closed applications have") + " no Furthest value in the pipeline, so "
+          + (funnel.assumed === 1 ? "it is" : "they are") + " shown as stopping right after being sent." : "")));
+}
+
 /* ---------- Progress ---------- */
 function viewProgress() {
   const practice = state.practice, totals = state.progress;
@@ -432,6 +476,8 @@ function viewProgress() {
       el("div", { class: "stat" }, el("b", {}, practice.length), el("span", {}, "Practice sessions")),
       el("div", { class: "stat" }, el("b", {}, average(scores.slice(0, 5))), el("span", {}, "Avg score, last 5")),
       el("div", { class: "stat" }, el("b", {}, average(scores)), el("span", {}, "Avg score, all"))),
+    el("h2", {}, "Where your applications went"),
+    funnelCard(totals.funnel),
     el("h2", {}, "Practice sessions"),
     practice.length
       ? table(["Date", "Mode", "Topic", "Score", "Weakest point"], practice.map(p => [p.date, p.mode, p.topic, p.score, p["weakest point"]]))

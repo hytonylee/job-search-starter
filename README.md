@@ -129,12 +129,14 @@ If the launcher does not start:
 | **Pipeline** | Counts per stage, what needs attention, and every application with its fit score, in a table you can sort by clicking a column heading |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, research, interview notes, and a PDF export button |
 | **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview. A document that is still an empty template says what will fill it |
-| **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |
+| **Progress** | Applications sent, interviews reached, offers, questions with a story, a funnel diagram, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, every keyword with a copy button, and a short glossary of the terms used here |
 
 **See an example.** A new project is empty, so the dashboard has a **See an example** button. It switches every tab to a fictional candidate, Sam Rivera, seven weeks into a product management search: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores. It is read-only and kept in its own `example/` folder, so it never mixes with your files and your AI tool never reads it. Press **Back to my data** to return. You can delete the folder, and the button goes with it.
 
 **It updates by itself.** The page reads your files and shows them. When the AI changes a file, the page picks it up within a few seconds, or as soon as you switch back to it. It holds off while you are typing, have unsaved roles, or have an archive preview open, and says so next to the **Refresh** button. To change a document, edit the file or ask the AI: apart from the role list, resume export and archiving, the dashboard changes nothing.
+
+**The funnel.** The Progress tab draws one bar per stage, from Sent to Offer. Each bar is as long as the share of your sent applications that reached that stage, and is split by what happened next: moved on, still open, rejected, withdrawn or no reply. It is built from your own pipeline and its archive, so it fills in as you apply and never needs updating by hand. It relies on the Furthest column: a closed application with no Furthest value is shown as stopping right after it was sent, and the diagram says how many of those there are.
 
 ## Your target roles
 
