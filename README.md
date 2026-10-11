@@ -30,8 +30,8 @@ A chat app in a browser is not enough. It cannot see or change the files in this
    - Without GitHub: click **Code → Download ZIP** and unzip it somewhere you will find again. Nothing is backed up this way, so keep your own copy of the folder.
    - Either way, work in your own copy, not directly in this repo, so your personal files never end up here.
 2. **Open the dashboard.** In the `start/` folder, double-click `Open dashboard (Mac).command` or `Open dashboard (Windows).bat`. A page opens in your browser. See [The dashboard](#the-dashboard) if it does not.
-3. **Look at the example.** Press **See an example** at the top of the page to see what a working project looks like, then **Back to my data**.
-4. **Press Start project onboarding.** The box that opens shows where this folder is on your computer, how to open it in your AI tool, and a first message to paste.
+3. **Look at the example.** Press **See an example first** to see what a working project looks like, then **Back to my data**.
+4. **Press Start project onboarding.** The box that opens explains how to get an AI tool if you do not have one, shows where this folder is on your computer and how to open it in that tool, and gives you a first message to paste.
 5. **Paste the message into your AI tool.** It asks you a series of questions and sets the project up one step at a time. The dashboard fills in as it goes.
 
 If you use **Claude Code**, also create a file named `CLAUDE.md` in the folder containing the single line `@AGENTS.md`. Codex and Cursor read `AGENTS.md` without that.
@@ -127,7 +127,7 @@ If the launcher does not start:
 |---|---|
 | **Start** | The onboarding button (it explains how to get an AI tool, shows where this folder is on your computer and how to open it, and gives the first message to paste), a setup checklist that ticks itself off, and your target roles |
 | **Pipeline** | Counts per stage, what needs attention, and every application with its fit score, in a table you can sort by clicking a column heading |
-| **Applications** | One company at a time: the posting, your fit, the tailored resume, research, interview notes, and a PDF export button |
+| **Applications** | One company at a time: its stage and fit score, the posting, your fit check, the tailored resume, research, interview notes, and a PDF export button |
 | **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview. A document that is still an empty template says what will fill it |
 | **Progress** | Applications sent, interviews reached, offers, questions with a story, a funnel diagram, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, every keyword with a copy button, and a short glossary of the terms used here |
@@ -136,7 +136,29 @@ If the launcher does not start:
 
 **It updates by itself.** The page reads your files and shows them. When the AI changes a file, the page picks it up within a few seconds, or as soon as you switch back to it. It holds off while you are typing, have unsaved roles, or have an archive preview open, and says so next to the **Refresh** button. To change a document, edit the file or ask the AI: apart from the role list, resume export and archiving, the dashboard changes nothing.
 
-**The funnel.** The Progress tab draws one bar per stage, from Sent to Offer. Each bar is as long as the share of your sent applications that reached that stage, and is split by what happened next: moved on, still open, rejected, withdrawn or no reply. It is built from your own pipeline and its archive, so it fills in as you apply and never needs updating by hand. It relies on the Furthest column: a closed application with no Furthest value is shown as stopping right after it was sent, and the diagram says how many of those there are.
+## Your pipeline
+
+The pipeline is one table, `applications/PIPELINE.md`, with a row per application. Your AI tool adds and updates the rows; you read them on the dashboard's **Pipeline** tab.
+
+| Column | What it holds |
+|---|---|
+| **Company**, **Role** | Who and what you applied for |
+| **Fit** | Your fit score, written like `4/5`: the number of the posting's required items you meet with evidence, out of the number it lists. `apply` works it out and records it |
+| **Stage** | Where the application stands: Drafted, Applied, Screen (the first call), Interview (any round after that), Final or Offer. A row is closed as Rejected, Withdrawn or No reply |
+| **Furthest** | For a closed row, the stage it had reached. This is what keeps an interview or an offer in your totals after a rejection |
+| **Applied**, **Last contact**, **Due** | Dates, always as `YYYY-MM-DD` |
+| **Next action**, **Source** | What you will do next, and where you found the posting |
+
+On the Pipeline tab:
+
+- **The fit score is coloured** green from 70%, amber from 50% and grey below, matching the screening rubric's apply-or-skip thresholds. The number is always shown as well.
+- **Two things are flagged** as needing attention: a next action whose due date has passed, and an application in the Applied stage with no contact for 21 days.
+- **Click a column heading to sort** by it. Click again to reverse, and a third time to return to the default order by stage. Empty cells stay at the bottom either way.
+- **Rows the script cannot read properly** are listed under "Rows to fix": an unknown stage, a date in another format, a fit that is not a score, missing columns or no company name.
+
+**The funnel.** The Progress tab shows where your applications went. It draws one bar per stage, from Sent to Offer. Each bar is as long as the share of your sent applications that reached that stage, and is split by what happened next: moved on, still open, rejected, withdrawn or no reply. The same counts are written beside each bar. It is built from your own pipeline and its archive, so it fills in as you apply and never needs updating by hand. Drafts are left out until they are sent. A closed application with no Furthest value is shown as stopping right after it was sent, and the diagram says how many of those there are.
+
+A pipeline file from an earlier version, without the Fit or Furthest column, still loads. Type `pipeline` and the AI adds the missing columns.
 
 ## Your target roles
 
@@ -196,7 +218,7 @@ output/              generated files: pipeline page, exported resumes (not commi
 
 Only `AGENTS.md` and `README.md` sit at the top level, apart from git's own dotfiles and, if you use Claude Code, a one-line `CLAUDE.md` pointer. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
 
-**Keeping it cheap to run.** `AGENTS.md` is loaded into every session, so it stays a short index of about 400 words: the keywords on one line, where files live, and seven rules. Each keyword has its own file in `modes/`, which the AI opens only when you type that keyword. Keep it that way: new detail goes in a mode file, `profile/profile.md` or `notes/`, never in `AGENTS.md`. Start a fresh session for each task instead of running one long one.
+**Keeping it cheap to run.** `AGENTS.md` is loaded into every session, so it stays a short index of under 500 words: the keywords on one line, where files live, and seven rules. Each keyword has its own file in `modes/`, which the AI opens only when you type that keyword. Keep it that way: new detail goes in a mode file, `profile/profile.md` or `notes/`, never in `AGENTS.md`. Start a fresh session for each task instead of running one long one.
 
 ## Scripts, for the terminal
 
@@ -219,11 +241,7 @@ python3 scripts/pipeline.py --open        # writes the page and opens it in your
 python3 scripts/pipeline.py --file x.md   # reads a different pipeline file
 ```
 
-Shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates.
-
-Each row carries a **Fit** score, written like `4/5`: the number of the posting's required items you meet with evidence, out of the number it lists. `apply` works it out and records it, and the dashboard colours it green from 70%, amber from 50% and grey below, matching the screening rubric's apply-or-skip thresholds.
-
-The stages are Drafted, Applied, Screen (the first call), Interview (any round after that), Final and Offer, and a row is closed as Rejected, Withdrawn or No reply. When a row is closed, its **Furthest** column records the stage it had reached, so an interview or an offer still counts in your totals after a rejection.
+Prints the same pipeline the dashboard shows: every application with its fit score and stage, a count per stage, and the rows that need attention. See [Your pipeline](#your-pipeline) for what the columns mean.
 
 **Export a resume**
 
@@ -299,6 +317,7 @@ Checks the scripts against temporary copies, never your files. Run it after chan
 - **Several roles means more upkeep.** Each role version of your resume has to be rebuilt when the master changes, and nothing does that for you.
 - **Story checks are mechanical.** They count words, numbers and "we" against "I". They cannot tell whether a story is true, interesting or right for the question. The twelve questions are a common set, not a complete one.
 - **The setup checklist reads your files, not your effort.** "Fill in and audit your profile" ticks once the profile header is complete and the audit has recorded at least one claim you must not inflate. It cannot tell a thorough audit from a quick one.
+- **Fit scores and the funnel depend on the pipeline being kept up.** A fit score appears only if `apply` recorded it, and the funnel is only as accurate as the Stage and Furthest columns. The fit score also counts items, so it treats a minor requirement the same as an essential one.
 - **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session. Interview and offer totals rely on the Furthest column being filled in when a row is closed; interview notes in a company folder act as a backstop.
 - **The tests cover the scripts, not the page or the AI.** The dashboard page and the mode files have no automated checks.
 - **Archiving is manual and by date only.** Nothing reminds you to run it. It skips a closed application with no valid date, and it never moves company folders or old notes.
@@ -308,7 +327,7 @@ Checks the scripts against temporary copies, never your files. Run it after chan
 
 - **More role patterns.** Product marketing, UX research, engineering management, QA, customer success, sales. Better still, patterns reviewed by someone who hires for that role.
 - **Editing from the dashboard.** Update a pipeline row, tick a rubric item or add a note without opening a file.
-- **A richer pipeline view.** Compute the weekly numbers and reply rate automatically, flag silence after interviews, and chart applications over time.
+- **A richer pipeline view.** Compute the weekly numbers and reply rate automatically, flag silence after interviews, chart applications over time, and draw the funnel as a flow diagram that follows each application from stage to stage.
 - **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
 - **Native commands per tool.** Slash commands for Cursor and Codex that wrap each mode, so the right file is always loaded.
 - **More modes.** Offer review and negotiation, networking and referral tracking, recruiter reply drafting, a weekly review.
