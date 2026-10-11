@@ -126,7 +126,7 @@ If the launcher does not start:
 | Tab | What you see |
 |---|---|
 | **Start** | The onboarding button (it explains how to get an AI tool, shows where this folder is on your computer and how to open it, and gives the first message to paste), a setup checklist that ticks itself off, and your target roles |
-| **Pipeline** | Counts per stage, what needs attention, every application |
+| **Pipeline** | Counts per stage, what needs attention, and every application in a table you can sort by clicking a column heading |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, research, interview notes, and a PDF export button |
 | **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview. A document that is still an empty template says what will fill it |
 | **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals count each application once, include archived ones, and go by the furthest stage it reached |

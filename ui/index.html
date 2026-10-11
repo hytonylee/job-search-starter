@@ -33,6 +33,11 @@
   table { border-collapse:collapse; width:100%; }
   th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
   th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); white-space:nowrap; }
+  th button.sort { all:unset; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+  th button.sort:hover, th[aria-sort="ascending"] button.sort, th[aria-sort="descending"] button.sort { color:var(--text); }
+  th button.sort:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:3px; }
+  th button.sort .arrow { width:.8em; font-size:10px; }
+  td.nowrap { white-space:nowrap; }
   tr:last-child td { border-bottom:0; } tr.closed td { color:var(--muted); }
   .pill { display:inline-block; padding:1px 9px; border-radius:99px; font-size:13px; white-space:nowrap; color:var(--ok); background:var(--ok-bg); }
   .pill.closed { color:var(--off); background:var(--off-bg); } .pill.warn { color:var(--warn); background:var(--warn-bg); }
@@ -236,11 +241,47 @@ function viewStart() {
 }
 
 /* ---------- Pipeline ---------- */
-function pipelineTable(rows) {
-  return table(["Company", "Role", "Stage", "Applied", "Last contact", "Next action", "Due", "Attention"],
-    rows.map(r => [el("b", {}, r.company), r.role, stagePill(r), r.applied, r["last contact"], r["next action"], r.due,
-                   r.flag ? el("span", { class: "pill warn" }, r.flag) : ""]),
-    i => rows[i].closed ? "closed" : null);
+const PIPELINE_COLUMNS = [["company", "Company"], ["role", "Role"], ["stage", "Stage"], ["applied", "Applied"],
+  ["last contact", "Last contact"], ["next action", "Next action"], ["due", "Due"], ["flag", "Attention"]];
+
+// Rows in the order chosen by clicking a column heading. With no choice, the order the dashboard computed
+// (by stage, then due date) is kept. Empty cells always go last, whichever direction is chosen.
+function sortedRows(rows) {
+  const sort = ui.sort;
+  if (!sort) return rows;
+  const stageRank = {};                                 // stages in pipeline order, taken from the default row order
+  state.pipeline.rows.forEach((r, i) => { if (!(r.stage in stageRank)) stageRank[r.stage] = i; });
+  const value = r => sort.key === "stage" ? stageRank[r.stage]
+    : sort.key === "flag" ? (r.flag ? -(parseInt(r.flag.replace(/\D+/g, ""), 10) || 0) : "")   // longest wait first
+    : (r[sort.key] || "");
+  const direction = sort.descending ? -1 : 1;
+  return rows.map((row, index) => ({ row, index })).sort((a, b) => {
+    const x = value(a.row), y = value(b.row);
+    if (x === "" || y === "") return (x === "" ? 1 : 0) - (y === "" ? 1 : 0) || a.index - b.index;
+    const order = typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: "base" });
+    return order * direction || a.index - b.index;
+  }).map(entry => entry.row);
+}
+function pipelineTable(rows, sortable) {
+  const cycle = key => {                                // first click ascending, second descending, third back to the default order
+    ui.sort = ui.sort?.key !== key ? { key, descending: false } : ui.sort.descending ? null : { key, descending: true };
+    render();
+  };
+  const heading = ([key, label]) => {
+    if (!sortable) return el("th", {}, label);
+    const active = ui.sort?.key === key;
+    return el("th", { "aria-sort": active ? (ui.sort.descending ? "descending" : "ascending") : "none" },
+      el("button", { class: "sort", id: "sort-" + key.replace(/ /g, "-"), title: "Sort by " + label.toLowerCase(), onclick: () => cycle(key) },
+        label, el("span", { class: "arrow", "aria-hidden": "true" }, active ? (ui.sort.descending ? "▼" : "▲") : "")));
+  };
+  const shown = sortable ? sortedRows(rows) : rows;
+  return el("div", { class: "wrap" }, el("table", {},
+    el("thead", {}, el("tr", {}, PIPELINE_COLUMNS.map(heading))),
+    el("tbody", {}, shown.map(r => el("tr", { class: r.closed ? "closed" : null },
+      el("td", {}, el("b", {}, r.company)), el("td", {}, r.role), el("td", {}, stagePill(r)),
+      el("td", { class: "nowrap" }, r.applied), el("td", { class: "nowrap" }, r["last contact"]),
+      el("td", {}, r["next action"]), el("td", { class: "nowrap" }, r.due),
+      el("td", {}, r.flag ? el("span", { class: "pill warn" }, r.flag) : ""))))));
 }
 function viewPipeline() {
   const p = state.pipeline;
@@ -254,13 +295,15 @@ function viewPipeline() {
       el("div", { class: "stat" }, el("b", {}, p.rows.length), el("span", {}, "Total")),
       el("div", { class: "stat" }, el("b", {}, p.rows.filter(r => !r.closed).length), el("span", {}, "Active")),
       p.counts.map(([stage, n]) => el("div", { class: "stat" }, el("b", {}, n), el("span", {}, stage)))),
-    flagged.length ? [el("h2", {}, `Needs attention (${flagged.length})`), pipelineTable(flagged)] : null,
+    flagged.length ? [el("h2", {}, `Needs attention (${flagged.length})`), pipelineTable(flagged, false)] : null,
     p.problems.length ? el("div", { class: "notice" }, el("b", {}, "Rows to fix in applications/PIPELINE.md"),
       el("ul", {}, p.problems.map(x => el("li", {}, x)))) : null,
     el("h2", {}, "All applications"),
     el("div", { class: "row" }, el("label", {}, el("input", { type: "checkbox", checked: ui.hideClosed,
-      onchange: e => { ui.hideClosed = e.target.checked; render(); } }), " Hide closed")),
-    pipelineTable(shown)
+      onchange: e => { ui.hideClosed = e.target.checked; render(); } }), " Hide closed"),
+      el("span", { class: "muted small" }, ui.sort ? "Sorted by " + PIPELINE_COLUMNS.find(c => c[0] === ui.sort.key)[1].toLowerCase() + (ui.sort.descending ? ", descending" : ", ascending") + ". Click the heading again to change it."
+                                                    : "Click a column heading to sort.")),
+    pipelineTable(shown, true)
   ];
 }
 
