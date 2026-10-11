@@ -5,9 +5,12 @@
 
 cd "$(dirname "$0")/.." || exit 1
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "Python 3 is not installed."
-  echo "Install it from https://www.python.org/downloads/ and double-click this file again."
+if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys' >/dev/null 2>&1; then
+  # macOS ships a python3 placeholder that only offers to install Apple's developer tools.
+  echo "Python 3 is not ready on this Mac."
+  echo "If macOS just offered to install developer tools, accept, wait for it to finish,"
+  echo "and double-click this file again. Otherwise install Python from"
+  echo "https://www.python.org/downloads/"
 elif ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 8))'; then
   echo "Your Python is too old. This needs Python 3.8 or newer."
   echo "Install a current version from https://www.python.org/downloads/ and try again."

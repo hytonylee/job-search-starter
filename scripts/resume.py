@@ -2,22 +2,24 @@
 """Export a resume from Markdown to clean Markdown, HTML and PDF.
 
 Usage:
-  python3 scripts/resume.py                export profile/resume.md
-  python3 scripts/resume.py acme           export applications/acme/resume.md
+  python3 scripts/resume.py                 export the master resume, profile/resume.md
+  python3 scripts/resume.py acme            export applications/acme/resume.md
   python3 scripts/resume.py --role frontend-engineer   export profile/resumes/frontend-engineer.md
-  python3 scripts/resume.py acme --open    export, then open the result
-  python3 scripts/resume.py --paper a4     A4 instead of US Letter
+  python3 scripts/resume.py acme --open     export, then open the result
+  python3 scripts/resume.py --paper a4      A4 instead of US Letter
+  python3 scripts/resume.py --file x.md     export any Markdown file
 
-Files are written to output/resume/general/, output/resume/<role>/ or
-output/resume/<company>/ and are
-named after the first "# Heading" in the resume, e.g. Jane-Doe-Resume.pdf.
+Files are written under output/resume/ to general/, roles/<role>/,
+companies/<company>/ or custom/, and are named after the first "# Heading" in
+the resume, e.g. Jane-Doe-Resume.pdf.
 
 Needs Python 3.8+. The PDF step uses a Chromium-based browser that is already
 installed (Chrome, Chromium, Edge or Brave). Without one, open the .html file
 and use Print > Save as PDF.
 
-Supported Markdown: headings, paragraphs, bullet lists (nested), **bold**,
-*italic*, `code`, [links](https://example.com) and --- rules. No tables or images.
+Supported in an exported resume: headings, paragraphs, bullet and numbered
+lists (nested), **bold**, *italic*, `code`, [links](https://example.com) and
+--- rules. Tables and images are not laid out for print.
 """
 
 import argparse
@@ -30,11 +32,13 @@ import tempfile
 import webbrowser
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-BASE = ROOT / "profile" / "resume.md"
+from common import RESUME_PLACEHOLDER, ROOT
+from render import clean_markdown, to_html
+
+MASTER = ROOT / "profile" / "resume.md"
 APPLICATIONS = ROOT / "applications"
 ROLE_RESUMES = ROOT / "profile" / "resumes"
-OUTPUT = ROOT / "output" / "resume"
+RESUME_OUTPUT = ROOT / "output" / "resume"
 
 BROWSER_PATHS = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -49,7 +53,7 @@ BROWSER_PATHS = [
 BROWSER_COMMANDS = ["google-chrome", "google-chrome-stable", "chromium",
                     "chromium-browser", "microsoft-edge", "brave-browser"]
 
-PAGE = """<!doctype html>
+PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -66,7 +70,7 @@ PAGE = """<!doctype html>
   h3 { font-size: 10.5pt; margin: 8pt 0 1pt; }
   h4 { font-size: 10.5pt; font-weight: normal; font-style: italic; margin: 0 0 2pt; }
   p { margin: 0 0 4pt; }
-  ul { margin: 2pt 0 6pt; padding-left: 14pt; }
+  ul, ol { margin: 2pt 0 6pt; padding-left: 14pt; }
   li { margin-bottom: 1.5pt; break-inside: avoid; }
   h2, h3, h4 { break-after: avoid; }
   a { color: inherit; text-decoration: none; }
@@ -81,72 +85,8 @@ __BODY__
 """
 
 
-def clean_markdown(text):
-    """Drop HTML comments, trailing spaces and runs of blank lines."""
-    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
-    lines = [line.rstrip() if not line.endswith("  ") else line.rstrip() + "  "
-             for line in text.splitlines()]
-    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip() + "\n"
-
-
-def inline(text):
-    text = html.escape(text, quote=False)
-    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
-    text = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
-                  lambda m: '<a href="%s">%s</a>' % (m.group(2).replace('"', "%22"), m.group(1)),
-                  text)
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", text)
-    text = re.sub(r"(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)", r"<em>\1</em>", text)
-    return text
-
-
-def to_html(markdown):
-    """Convert the small Markdown subset a resume needs."""
-    out, paragraph, depth = [], [], 0
-
-    def flush():
-        if paragraph:
-            out.append("<p>" + "".join(paragraph).rstrip() + "</p>")
-            paragraph.clear()
-
-    def set_depth(target):
-        nonlocal depth
-        while depth < target:
-            out.append("<ul>")
-            depth += 1
-        while depth > target:
-            out.append("</ul>")
-            depth -= 1
-
-    for line in markdown.splitlines():
-        heading = re.match(r"^(#{1,4})\s+(.*)$", line)
-        bullet = re.match(r"^(\s*)[-*+]\s+(.*)$", line)
-        if not line.strip():
-            flush()
-            set_depth(0)
-        elif heading:
-            flush()
-            set_depth(0)
-            level = len(heading.group(1))
-            out.append(f"<h{level}>{inline(heading.group(2).strip())}</h{level}>")
-        elif re.match(r"^\s*([-*_])\1{2,}\s*$", line):
-            flush()
-            set_depth(0)
-            out.append("<hr>")
-        elif bullet:
-            flush()
-            set_depth(len(bullet.group(1).expandtabs(4)) // 2 + 1)
-            out.append("<li>" + inline(bullet.group(2).strip()))
-        elif depth and line[:1].isspace():  # wrapped line of the bullet above
-            out[-1] += " " + inline(line.strip())
-        else:
-            set_depth(0)
-            hard_break = line.endswith("  ") or line.endswith("\\")
-            paragraph.append(inline(line.rstrip("\\").strip()) + ("<br>" if hard_break else " "))
-    flush()
-    set_depth(0)
-    return "\n".join(out)
+class ExportError(Exception):
+    """A problem the user can fix, such as a missing or placeholder resume."""
 
 
 def find_browser():
@@ -161,7 +101,7 @@ def find_browser():
 
 
 def make_pdf(html_path, pdf_path):
-    """Print the HTML to PDF with a headless browser. Returns "" or the reason it failed."""
+    """Print the HTML to PDF with a headless browser. Returns None on success, or why it failed."""
     browser = find_browser()
     if not browser:
         return "no Chrome, Chromium, Edge or Brave was found"
@@ -177,31 +117,8 @@ def make_pdf(html_path, pdf_path):
         except (OSError, subprocess.TimeoutExpired) as error:
             return f"{Path(browser).name} could not run ({type(error).__name__})"
     if pdf_path.exists() and pdf_path.stat().st_size > 0:
-        return ""
+        return None
     return f"{Path(browser).name} ran but produced no file"
-
-
-class ExportError(Exception):
-    """A problem the user can fix, such as a missing or placeholder resume."""
-
-
-def pick_source(company):
-    if not company:
-        return BASE
-    source = APPLICATIONS / company / "resume.md"
-    if source.exists():
-        return source
-    available = sorted(p.parent.name for p in APPLICATIONS.glob("*/resume.md"))
-    hint = "Folders with a resume: " + ", ".join(available) if available else \
-        "No company folder has a resume.md yet. Create one with:  apply: [company]"
-    raise ExportError(f"No tailored resume at {source.relative_to(ROOT)}\n{hint}")
-
-
-def show(path):
-    try:
-        return path.relative_to(ROOT).as_posix()
-    except ValueError:
-        return str(path)
 
 
 def role_versions(folder=None):
@@ -209,40 +126,72 @@ def role_versions(folder=None):
     return sorted(p.stem for p in (folder or ROLE_RESUMES).glob("*.md") if p.name != "README.md")
 
 
+def source_and_folder(company, role, file):
+    """Which Markdown file to export, and the folder under output/resume/ it goes to."""
+    if sum(bool(choice) for choice in (company, role, file)) > 1:
+        raise ExportError("Choose one: a company, --role or --file.")
+    if file:
+        return file, "custom"
+    if role:
+        if role not in role_versions():
+            available = ", ".join(role_versions()) or "none yet. Create one with:  role resume: [role]"
+            raise ExportError(f"No resume version named '{role}'. Available: {available}")
+        return ROLE_RESUMES / f"{role}.md", f"roles/{role}"
+    if company:
+        source = APPLICATIONS / company / "resume.md"
+        if not source.exists():
+            available = sorted(p.parent.name for p in APPLICATIONS.glob("*/resume.md"))
+            hint = "Folders with a resume: " + ", ".join(available) if available else \
+                "No company folder has a resume.md yet. Create one with:  apply: [company]"
+            raise ExportError(f"No tailored resume at {display_path(source)}\n{hint}")
+        return source, f"companies/{company}"
+    return MASTER, "general"
+
+
+def display_path(path):
+    """The path relative to the repo, with forward slashes on every platform."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def file_stem(markdown):
+    """The export file name, from the resume's first heading. Keeps accented and non-Latin letters."""
+    title = re.search(r"^#\s+(.+)$", markdown, flags=re.M)
+    name = re.sub(r"[^\w]+", "-", title.group(1)).strip("-_") if title else ""
+    return f"{name}-Resume" if name and name.lower() != "resume" else "Resume"
+
+
 def export_resume(company=None, paper="letter", file=None, role=None):
-    """Write the .md, .html and .pdf. Returns their paths and any PDF failure reason."""
-    if role and role not in role_versions():
-        available = ", ".join(role_versions()) or "none yet. Create one with:  role resume: [role]"
-        raise ExportError(f"No resume version named '{role}'. Available: {available}")
-    source = file or (ROLE_RESUMES / f"{role}.md" if role else pick_source(company))
+    """Write the .md, .html and .pdf. Returns their paths and, if no PDF was made, why."""
+    source, subfolder = source_and_folder(company, role, file)
     if not source.exists():
-        raise ExportError(f"Resume not found: {show(source)}")
+        raise ExportError(f"Resume not found: {display_path(source)}")
     raw = source.read_text(encoding="utf-8")
-    if "Empty on purpose" in raw:
-        raise ExportError(f"{show(source)} is still the placeholder. Run `setup` first.")
+    if RESUME_PLACEHOLDER in raw:
+        raise ExportError(f"{display_path(source)} is still the placeholder. Run `setup` first.")
 
     markdown = clean_markdown(raw)
     title = re.search(r"^#\s+(.+)$", markdown, flags=re.M)
-    name = re.sub(r"[^A-Za-z0-9]+", "-", title.group(1)).strip("-") if title else ""
-    stem = f"{name}-Resume" if name and name.lower() != "resume" else "Resume"
-
-    folder = OUTPUT / (company or role or "general")
+    stem = file_stem(markdown)
+    folder = RESUME_OUTPUT / subfolder
     folder.mkdir(parents=True, exist_ok=True)
     md_path, html_path, pdf_path = (folder / f"{stem}{ext}" for ext in (".md", ".html", ".pdf"))
 
     md_path.write_text(markdown, encoding="utf-8")
-    page = (PAGE.replace("__PAPER__", "A4" if paper == "a4" else "Letter")
-                .replace("__TITLE__", html.escape(title.group(1) if title else "Resume"))
-                .replace("__BODY__", to_html(markdown)))
+    page = (PAGE_TEMPLATE.replace("__PAPER__", "A4" if paper == "a4" else "Letter")
+            .replace("__TITLE__", html.escape(title.group(1) if title else "Resume"))
+            .replace("__BODY__", to_html(markdown)))
     html_path.write_text(page, encoding="utf-8")
     failure = make_pdf(html_path, pdf_path)
-    return {"source": show(source), "md": show(md_path), "html": show(html_path),
-            "pdf": "" if failure else show(pdf_path), "failure": failure}
+    return {"source": display_path(source), "md": display_path(md_path), "html": display_path(html_path),
+            "pdf": "" if failure else display_path(pdf_path), "failure": failure or ""}
 
 
 def main():
     parser = argparse.ArgumentParser(description="Export a resume to Markdown, HTML and PDF.")
-    parser.add_argument("company", nargs="?", help="folder name under applications/ (omit for the base resume)")
+    parser.add_argument("company", nargs="?", help="folder name under applications/ (omit for the master resume)")
     parser.add_argument("--role", help="export the version in profile/resumes/ with this name")
     parser.add_argument("--paper", choices=["letter", "a4"], default="letter", help="page size (default: letter)")
     parser.add_argument("--open", action="store_true", help="open the PDF (or the HTML if no PDF was made)")

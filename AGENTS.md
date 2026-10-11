@@ -47,14 +47,14 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `progress/practice-log.md` | One row per drill, practice or mock interview, with the score |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
-| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `stories.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
+| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `stories.py`, `archive.py`, `commands.py`. Prefer running these over reading the files they cover |
 | `roles/` | Example patterns per kind of role. Read only in the `roles` mode |
 | `ui/`, `start/` | The dashboard page and its launchers. Do not read |
 | `example/` | A fictional candidate for the dashboard's example view. Never read it, and never treat it as mine |
 | `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |
 | `output/` | Generated views only. Never edit by hand, never store source data here |
 
-The repo root holds only this file and `README.md`. Put new files in the folder they belong to.
+The repo root holds only this file and `README.md`, plus git's own dotfiles and, for Claude Code, a one-line `CLAUDE.md` pointer. Put new files in the folder they belong to.
 
 ## Always-on rules
 

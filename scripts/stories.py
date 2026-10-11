@@ -9,9 +9,9 @@ Stories live in profile/stories/, one STAR story per file. Create them with the
 """
 
 import re
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from common import ROOT
+
 STORIES = ROOT / "profile" / "stories"
 
 # The tags a story can carry, each with the kind of question it answers.
@@ -35,7 +35,7 @@ WORDS_PER_MINUTE = 130
 LONG_WORDS = 320  # about two and a half minutes spoken
 
 
-def value(text):
+def filled_value(text):
     """A metadata value, or "" if it is still a [placeholder]."""
     text = text.strip()
     return "" if text.startswith("[") else text
@@ -54,7 +54,7 @@ def parse_story(path):
         elif current:
             sections[current].append(line)
         elif field:
-            meta[field.group(1).strip().lower()] = value(field.group(2))
+            meta[field.group(1).strip().lower()] = filled_value(field.group(2))
     body = {name: "\n".join(lines).strip() for name, lines in sections.items()}
     body = {name: "" if content.startswith("[") else content for name, content in body.items()}
 
@@ -121,11 +121,11 @@ def main():
     print(f"\nCoverage: {len(covered) - len(gaps)} of {len(covered)} common questions have a story")
     for tag, question in gaps:
         print(f"  no story for {tag.ljust(15)} {question}")
-    heavy = [(tag, titles) for tag, _, titles in covered if len(titles) == 1]
-    overused = {}
-    for tag, titles in heavy:
-        overused.setdefault(titles[0], []).append(tag)
-    for title, tags in overused.items():
+    sole_cover = {}  # story title -> the questions it alone answers
+    for tag, _, titles in covered:
+        if len(titles) == 1:
+            sole_cover.setdefault(titles[0], []).append(tag)
+    for title, tags in sole_cover.items():
         if len(tags) >= 4:
             print(f"  '{title}' is the only story for {len(tags)} questions: {', '.join(tags)}")
     known = {tag for tag, _ in COMPETENCIES}

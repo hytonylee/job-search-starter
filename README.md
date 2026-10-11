@@ -37,7 +37,7 @@ example/             a fictional candidate for the dashboard's "See an example" 
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
-Only `AGENTS.md` and `README.md` sit at the top level. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
+Only `AGENTS.md` and `README.md` sit at the top level, apart from git's own dotfiles and, if you use Claude Code, a one-line `CLAUDE.md` pointer. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
 
 ## Setup, about 10 minutes
 
@@ -62,24 +62,24 @@ A local web page for reading your material, so you are not limited to the termin
 | Mac | `start/dashboard-mac.command` |
 | Windows | `start/dashboard-windows.bat` |
 
-A small window opens and stays open while the dashboard runs, and the page appears in your browser at `http://127.0.0.1:8765/`. To stop it, close that window. On Linux, or if you prefer a terminal, run `python3 scripts/app.py` from the repo folder.
+A small window opens and stays open while the dashboard runs, and the page appears in your browser at `http://127.0.0.1:8765/`. To stop it, close that window. If you double-click again while it is running, it opens the one already running instead of starting a second. If that port is taken by another program, it uses the next free one and says which. On Linux, or if you prefer a terminal, run `python3 scripts/app.py` from the repo folder.
 
 It runs only on your own computer and sends nothing anywhere. That also means the address works only on your machine: it is not a link you can send to someone else.
 
 If the launcher does not start:
 
-- **"Python 3 is not installed."** Install it from [python.org/downloads](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" during the install. On a Mac, the first run may instead offer to install Apple's developer tools, which include Python: accept, wait for it to finish, and double-click again.
+- **"Python 3 is not installed."** Install it from [python.org/downloads](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" during the install. On a Mac the message reads "Python 3 is not ready", and macOS may offer to install Apple's developer tools, which include Python: accept, wait for it to finish, and double-click again.
 - **Mac says the file cannot be opened, or is from an unidentified developer.** This happens if you downloaded the repo as a ZIP instead of cloning it. Right-click the file, choose Open, then Open again. You only need to do this once.
 - **Mac says you do not have permission.** In Terminal, run `chmod +x start/dashboard-mac.command` from the repo folder.
 - **Windows shows "Windows protected your PC".** Click More info, then Run anyway.
 
 | Tab | What you see |
 |---|---|
-| **Start** | The onboarding button, your target roles, and a setup checklist that ticks itself off |
+| **Start** | The onboarding button (it shows where this folder is on your computer, how to open it in your AI tool, and the first message to paste), your target roles, and a setup checklist that ticks itself off |
 | **Pipeline** | Counts per stage, what needs attention, every application |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, interview notes, and a PDF export button |
 | **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview |
-| **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
+| **Progress** | Applications sent, interviews reached, offers, questions with a story, practice scores over time, and recent sessions. Totals include archived applications, and an interview counts once interview notes exist for that company |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
 
 **See an example.** A new project is empty, so the dashboard has a **See an example** button. It switches every tab to a fictional candidate, Sam Rivera, seven weeks into a product management search: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores. It is read-only and kept in its own `example/` folder, so it never mixes with your files and your AI tool never reads it. Press **Back to my data** to return. You can delete the folder, and the button goes with it.
@@ -90,7 +90,7 @@ The page reads your files and shows them. The coaching itself still happens in y
 
 Most people are not looking for one job title. You might be a frontend engineer who also applies to product engineer and full-stack roles, each with a different resume.
 
-So there is no list to pick from. You type your roles in your own words, on the dashboard's Start tab or during onboarding, and they are saved in `profile/roles.md` with your primary one first. Then:
+So there is no list to pick from. You type your roles in your own words, on the dashboard's Start tab or during onboarding, and they are saved in `profile/roles.md` with your primary one first. Saving from the dashboard replaces only the list; any notes you added to that file are kept. Then:
 
 - **`roles`** tailors three things to them: the skill areas in your profile table, one live practice exercise per role, and role-specific lines in the screening rubric. It adds to what you have and never wipes it, so you can change roles mid-search.
 - **`role resume: [role]`** builds a resume version for one role in `profile/resumes/`, using the same verified facts as your master resume in a different order and emphasis.
@@ -113,7 +113,7 @@ Behavioural questions ("tell me about a time you...") are answered with stories,
 - **`mock interview`** asks behavioural questions and checks your answer against the saved story. **`debrief`** records which story you used in a real interview and how it landed.
 - The dashboard's **Prep** tab shows every story with its coverage table, for reading the night before.
 
-Stories are stored as short notes to speak from, not scripts to memorise, because a recited answer falls apart on the first follow-up. The script flags a story that is missing a part, runs over about two and a half minutes, has a result with no number, says "we" more than "I" in the Action, or has never been practised.
+Stories are stored as short notes to speak from, not scripts to memorise, because a recited answer falls apart on the first follow-up. The script flags six things: a story that is missing a part, has no competency tags, runs over about two and a half minutes, has a result with no number, says "we" more than "I" in the Action, or has never been practised.
 
 ## First session, 60 to 90 minutes
 
@@ -140,7 +140,7 @@ The onboarding (`setup`) is an interview in seven steps. It can be stopped and r
 Type `help` (or `commands`) in your AI tool, or run:
 
 ```bash
-python3 scripts/help.py
+python3 scripts/commands.py
 ```
 
 It prints every keyword and every script command. The list is built from the table in `AGENTS.md` and each script's own usage text, so it stays current when you add your own. The word is `help`, not `/help`, because `/help` is already a built-in command in most of these tools.
@@ -157,20 +157,22 @@ python3 scripts/pipeline.py --html    # also writes output/pipeline.html
 python3 scripts/pipeline.py --open    # writes the page and opens it in your browser
 ```
 
-It shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates.
+It shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates. `--file x.md` reads a different pipeline file.
 
 ## Export your resume
 
 Type `export resume` or `export resume: [company]`, or run:
 
 ```bash
-python3 scripts/resume.py              # the base resume, profile/resume.md
-python3 scripts/resume.py acme         # the tailored one, applications/acme/resume.md
-python3 scripts/resume.py acme --open  # export, then open it
-python3 scripts/resume.py --paper a4   # A4 instead of US Letter
+python3 scripts/resume.py                           # the master resume, profile/resume.md
+python3 scripts/resume.py acme                      # the tailored one, applications/acme/resume.md
+python3 scripts/resume.py --role frontend-engineer  # a role version, profile/resumes/frontend-engineer.md
+python3 scripts/resume.py acme --open               # export, then open it
+python3 scripts/resume.py --paper a4                # A4 instead of US Letter
+python3 scripts/resume.py --file x.md               # any other Markdown file
 ```
 
-Each run writes three files to `output/resume/general/` or `output/resume/<company>/`: a clean `.md`, an `.html`, and a `.pdf`. They are named after the first heading in the resume, for example `Jane-Doe-Resume.pdf`.
+Each run writes three files, a clean `.md`, an `.html` and a `.pdf`, to a folder under `output/resume/`: `general/` for the master, `roles/<role>/`, `companies/<company>/`, or `custom/` for `--file`. Choose one source per run. They are named after the first heading in the resume, for example `Jane-Doe-Resume.pdf`. Accented and non-Latin names are kept as written.
 
 The PDF is printed by a Chromium-based browser you already have (Chrome, Chromium, Edge or Brave). If none is found, open the `.html` file in any browser and use Print, then Save as PDF. The layout is a plain single column with real text, which is what applicant tracking systems read best. Always open the PDF and check it before sending.
 
@@ -184,7 +186,7 @@ python3 scripts/archive.py --apply    # moves it
 python3 scripts/archive.py --days 14  # 14 day cut-off instead of 30
 ```
 
-Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<year>.md`. Pipeline rows that are Rejected, Withdrawn or No reply and were last touched before the cut-off move to `applications/_archive/PIPELINE-ARCHIVE.md`. Company folders stay where they are. This keeps the files the AI reads every day short.
+Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<year>.md`. Only sections headed with a date are entries; a section with any other heading stays in the log. Pipeline rows that are Rejected, Withdrawn or No reply and were last touched before the cut-off move to `applications/_archive/PIPELINE-ARCHIVE.md`. Company folders stay where they are. This keeps the files the AI reads every day short.
 
 ## Three things that make it work
 
@@ -203,9 +205,9 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **Mode files rely on the AI following a pointer.** If a keyword runs without its rules, tell the tool directly: "follow `modes/apply.md`."
 - **It does not find jobs.** You bring the postings. There is no job-board search, scraping or auto-apply.
 - **Very little is automated.** The pipeline is a Markdown table the AI edits, and the script only displays it. LinkedIn is updated by hand, and there are no reminders. If you skip `check in`, nothing nudges you.
-- **The pipeline script is strict about format.** It lists rows with an unknown stage, a date that is not `YYYY-MM-DD`, or missing columns, but it cannot flag a follow-up on those rows until you fix them. Renaming a column breaks it.
+- **The pipeline script is strict about format.** It lists rows with an unknown stage, a date that is not `YYYY-MM-DD`, missing columns or no company name. A row with a bad date cannot be flagged as overdue or stale until you fix it. Renaming a column breaks it.
 - **Only two things are flagged.** An overdue next action, and an application in the Applied stage with no contact for 21 days. Silence after an interview is not flagged unless you set a due date.
-- **Resume export is basic.** One fixed single-column layout. It handles headings, paragraphs, bullets, bold, italic and links, but not tables, images or columns. The PDF needs a Chromium-based browser, and nothing checks the page count for you.
+- **Resume export is basic.** One fixed single-column layout. It handles headings, paragraphs, bullet and numbered lists, bold, italic and links, but not tables, images or columns. The PDF needs a Chromium-based browser, and nothing checks the page count for you.
 - **Memory is manual.** Codex and Cursor do not carry memory between sessions, so anything worth keeping has to be written to `notes/`.
 - **The audit is only as honest as you are.** The AI cannot check your claims against anything except what you tell it.
 - **The AI can still be wrong.** It can misread a posting or score an answer too kindly. Treat scores as a prompt to think, not a verdict.
@@ -213,6 +215,7 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **Your data goes to your AI provider.** Whatever the tool reads is sent to that provider under its terms. Check them before adding anything sensitive.
 - **The AI tool still needs setting up.** The dashboard opens with a double-click, but Codex, Cursor or Claude Code has to be installed and opened on the folder, and Python has to be present. A non-technical user will want someone beside them for the first session.
 - **The Windows launcher is untested.** It was written and checked on a Mac. If it fails, run `py -3 scripts\app.py` in a Command Prompt from the repo folder and report what it prints.
+- **The setup checklist reads your files, not your effort.** "Fill in and audit your profile" ticks once the profile header is complete and the audit has recorded at least one claim you must not inflate. It cannot tell a thorough audit from a quick one.
 - **The dashboard is for reading.** Apart from the role list, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
 - **The dashboard and role tailoring are new.** The page logic was tested with sample data but has had little real use. The role-specific material is written by your AI tool from the example patterns in `roles/`, which come from general knowledge of those interviews rather than a real search in each role. Read what it produces and correct it.
 - **Research is only as good as the web search.** The AI can still misread a page or pick up an outdated one. Open the sources for anything you plan to say in an interview. Small private companies often have little public information.

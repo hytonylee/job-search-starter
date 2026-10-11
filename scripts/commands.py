@@ -2,18 +2,19 @@
 """List every keyword and script command in this repo.
 
 Usage:
-  python3 scripts/help.py    print keywords and script commands
+  python3 scripts/commands.py    print keywords and script commands
 
 Keywords are read from the table in AGENTS.md and script commands from each
-script's own usage text, so this list cannot drift from the real thing.
+script's own usage text. A script without a Usage block is a helper, not a
+command, and is left out.
 """
 
 import ast
 import re
 import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from common import ROOT, split_cells
+
 AGENTS = ROOT / "AGENTS.md"
 SCRIPTS = ROOT / "scripts"
 
@@ -22,7 +23,7 @@ def keywords():
     """Rows of the Modes table: (keyword, purpose)."""
     rows = []
     for line in AGENTS.read_text(encoding="utf-8").splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        cells = split_cells(line)
         if len(cells) == 3 and re.fullmatch(r"`modes/[\w-]+\.md`", cells[1]):
             rows.append((cells[0].strip("`"), cells[2]))
     return rows
@@ -45,6 +46,16 @@ def script_usage(path):
     return summary, commands
 
 
+def script_commands():
+    """Every runnable script as (file name, summary, commands). Helpers with no Usage block are skipped."""
+    found = []
+    for path in sorted(SCRIPTS.glob("*.py")):
+        summary, commands = script_usage(path)
+        if commands:
+            found.append((path.name, summary, commands))
+    return found
+
+
 def main():
     if not AGENTS.exists():
         sys.exit("AGENTS.md not found")
@@ -55,10 +66,9 @@ def main():
         print(f"  {keyword.ljust(width)}  {purpose}")
 
     print("\nSCRIPTS  (run these in a terminal, from the repo folder)")
-    for path in sorted(SCRIPTS.glob("*.py")):
-        summary, commands = script_usage(path)
-        print(f"\n  {path.name}: {summary}")
-        width = max((len(c) for c, _ in commands), default=0)
+    for name, summary, commands in script_commands():
+        print(f"\n  {name}: {summary}")
+        width = max(len(c) for c, _ in commands)
         for command, about in commands:
             print(f"    {command.ljust(width)}  {about}".rstrip())
 

@@ -83,8 +83,10 @@
 const TOKEN = "__TOKEN__";
 const TABS = [["start", "Start"], ["pipeline", "Pipeline"], ["applications", "Applications"],
               ["prep", "Prep"], ["progress", "Progress"], ["tools", "Tools"]];
-let S = null;                      // server state
-let ui = { tab: location.hash.slice(1) || "start", company: null, file: null, doc: null, hideClosed: false, example: false };
+let state = null;                      // server state
+let ui = { tab: location.hash.slice(1) || "start", company: null, file: null, doc: null, hideClosed: false, example: false,
+           paper: "letter", source: "", days: "30",
+           results: { master: null, archive: null, apps: {} } };   // kept here so a redraw does not erase them
 
 function el(tag, props = {}, ...kids) {
   const node = document.createElement(tag);
@@ -135,8 +137,8 @@ function stagePill(row) { return el("span", { class: "pill" + (row.closed ? " cl
 /* ---------- Start ---------- */
 let draftRoles = null;             // unsaved edits to the role list
 function viewStart() {
-  if (draftRoles === null) draftRoles = S.roles.slice();
-  const changed = JSON.stringify(draftRoles) !== JSON.stringify(S.roles);
+  if (draftRoles === null) draftRoles = state.roles.slice();
+  const changed = JSON.stringify(draftRoles) !== JSON.stringify(state.roles);
   const input = el("input", { type: "text", id: "role-input", maxlength: "60", placeholder: "e.g. Frontend Engineer",
     "aria-label": "Add a role", style: "flex:1; min-width:200px; font:inherit; padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text)",
     onkeydown: e => { if (e.key === "Enter") add(); } });
@@ -156,25 +158,34 @@ function viewStart() {
         : "Saved. You have no target roles yet."));
     } catch (error) { message.replaceChildren(el("div", { class: "notice" }, error.message)); }
   }
-  const done = S.setup.filter(s => s.done).length;
-  const step = text => S.setup.find(x => x.text.startsWith(text))?.done;
-  const onboarded = step("Create your resume") && step("Tailor the profile");
+  const done = state.setup.filter(s => s.done).length;
+  const step = id => state.setup.find(x => x.id === id)?.done;
+  const onboarded = step("resume") && step("tailored");
   const prompt = onboarded
     ? ["Read AGENTS.md, then run the `check in` keyword by following modes/check-in.md.",
        "When you have updated any files, tell me to press Refresh on the dashboard."].join("\n")
     : ["Read AGENTS.md, then run the `setup` keyword by following modes/setup.md one step at a time.",
        "",
-       S.roles.length ? "My target roles are already saved in profile/roles.md: " + S.roles.join(", ") + "."
+       state.roles.length ? "My target roles are already saved in profile/roles.md: " + state.roles.join(", ") + "."
                       : "I have not chosen my target roles yet. Ask me which job titles I am applying for (there may be several) and save them to profile/roles.md.",
-       step("Save your LinkedIn") ? "My LinkedIn export is saved at profile/linkedin-export.pdf."
+       step("source") ? "My resume source is already in the profile/ folder."
                                   : "I have not saved my LinkedIn export yet. Start by telling me exactly how to get it and where to put it, then wait for me.",
        "",
        "Take me through all seven steps by asking me questions, one at a time, and wait for each answer. Do not invent anything about me.",
        "After each step, save the files and tell me to press Refresh on the dashboard. At the end, tell me what to type next."].join("\n");
+  const cdCommand = 'cd "' + state.folder + '"';
   const promptBox = ui.showPrompt ? el("div", { class: "card", style: "margin-top:12px" },
-    el("p", { class: "muted small" }, "Open Codex, Cursor or Claude Code on this folder, paste this into the chat, and send it."),
+    el("h3", { style: "margin-top:0" }, "1. Open this project folder in your AI tool"),
+    el("p", { class: "muted small" }, "The AI can only help if it is opened on this folder, because that is where your files are. On this computer the folder is:"),
+    el("div", { class: "row" }, el("span", { class: "kw", style: "overflow-wrap:anywhere" }, state.folder), copyButton(state.folder)),
+    el("ul", { class: "muted small", style: "margin:0 0 6px; padding-left:20px" },
+      el("li", {}, el("b", {}, "Cursor: "), "File, Open Folder, choose the folder above, then open the Agent chat."),
+      el("li", {}, el("b", {}, "Codex or Claude Code: "), "open a terminal, run the first line below, then run ", el("span", { class: "kw" }, "codex"), " or ", el("span", { class: "kw" }, "claude"), ".")),
+    el("div", { class: "row" }, el("span", { class: "kw", style: "overflow-wrap:anywhere" }, cdCommand), copyButton(cdCommand)),
+    el("h3", {}, "2. Paste this as your first message"),
     el("pre", { id: "prompt-text", tabindex: "0" }, prompt),
-    el("div", { class: "row", style: "margin:10px 0 0" }, copyButton(prompt))) : null;
+    el("div", { class: "row", style: "margin:10px 0 0" }, copyButton(prompt)),
+    el("p", { class: "muted small", style: "margin:10px 0 0" }, "The AI then asks you a series of questions. Answer them there; this page updates as it saves each step.")) : null;
   return [
     ui.example ? el("div", { class: "card" },
       el("p", {}, "This is Sam Rivera, a fictional product manager about seven weeks into a search. Look through the tabs to see what a working project holds: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores."),
@@ -199,8 +210,8 @@ function viewStart() {
         el("button", { class: "btn primary", disabled: !changed, onclick: save }, "Save roles")),
       changed ? el("p", { class: "muted small" }, "You have unsaved changes.") : null,
       message, el("div", { id: "role-msg" })),
-    el("h2", {}, `2. Get set up (${done} of ${S.setup.length} done)`),
-    el("div", { class: "card" }, el("ul", { class: "check" }, S.setup.map(step =>
+    el("h2", {}, `2. Get set up (${done} of ${state.setup.length} done)`),
+    el("div", { class: "card" }, el("ul", { class: "check" }, state.setup.map(step =>
       el("li", { class: step.done ? "done" : null },
         el("span", { class: "mark", "aria-hidden": "true" }, step.done ? "✓" : "○"),
         el("div", {}, el("div", { class: "text" }, step.text, el("span", { class: "muted" }, step.done ? " (done)" : "")),
@@ -220,7 +231,7 @@ function pipelineTable(rows) {
     i => rows[i].closed ? "closed" : null);
 }
 function viewPipeline() {
-  const p = S.pipeline;
+  const p = state.pipeline;
   if (!p.rows.length) return [el("div", { class: "card" }, el("p", {}, "No applications yet."),
     el("p", { class: "muted" }, "Type ", el("span", { class: "kw" }, "apply: [company]"), " in your AI tool and paste a posting. It will show up here."),
     p.problems.map(x => el("div", { class: "notice" }, x)))];
@@ -254,25 +265,31 @@ function docPane(path) {
   return pane;
 }
 
+/* ---------- resume export, shared by Applications and Tools ---------- */
+function exportNotice(result) {
+  if (!result) return null;
+  if (result.pending) return el("p", { class: "muted" }, "Exporting…");
+  if (result.error) return el("div", { class: "notice" }, result.error);
+  const file = result.pdf || result.html;
+  return el("div", { class: "notice ok" }, "Exported. ",
+    el("a", { href: "/" + file, target: "_blank", rel: "noopener" }, result.pdf ? "Open PDF" : "Open HTML"),
+    result.pdf ? "" : " (no PDF: " + result.failure + ". Open the HTML and use Print, then Save as PDF.)");
+}
+async function runExport(company, body) {          // company is null for the master resume or a role version
+  const store = result => { if (company) ui.results.apps[company] = result; else ui.results.master = result; render(); };
+  store({ pending: true });
+  try { store(await api("/api/export", body)); } catch (error) { store({ error: error.message }); }
+}
+
 /* ---------- Applications ---------- */
 function viewApplications() {
-  const apps = S.applications;
+  const apps = state.applications;
   if (!apps.length) return [el("div", { class: "card" }, el("p", {}, "No company folders yet."),
     el("p", { class: "muted" }, "Each ", el("span", { class: "kw" }, "apply: [company]"), " creates one with the posting, your fit, the tailored resume and interview notes."))];
   const app = apps.find(a => a.name === ui.company) || apps[0];
   const file = app.files.includes(ui.file) ? ui.file : (app.files.includes("fit.md") ? "fit.md" : app.files[0]);
-  const row = S.pipeline.rows.find(r => r.company.toLowerCase().replace(/[^a-z0-9]+/g, "-") === app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
-  const result = el("div");
-  async function exportResume(button) {
-    button.disabled = true; result.replaceChildren(el("p", { class: "muted" }, "Exporting…"));
-    try {
-      const r = await api("/api/export", { company: app.name });
-      result.replaceChildren(el("div", { class: "notice ok" }, "Exported. ",
-        r.pdf ? el("a", { href: "/" + r.pdf, target: "_blank" }, "Open PDF") : el("a", { href: "/" + r.html, target: "_blank" }, "Open HTML"),
-        r.pdf ? "" : " (no PDF: " + r.failure + ". Open the HTML and use Print, then Save as PDF.)"));
-    } catch (error) { result.replaceChildren(el("div", { class: "notice" }, error.message)); }
-    button.disabled = false;
-  }
+  const slug = text => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const row = state.pipeline.rows.find(r => slug(r.company) === slug(app.name));
   return [el("div", { class: "split" },
     el("div", { class: "list", role: "list", "aria-label": "Companies" }, apps.map(a =>
       el("button", { "aria-current": a.name === app.name ? "true" : null, onclick: () => { ui.company = a.name; ui.file = null; render(); } }, a.name))),
@@ -281,9 +298,10 @@ function viewApplications() {
         row && row.flag ? el("span", { class: "pill warn" }, row.flag) : null),
       row ? el("p", { class: "muted" }, [row.role, row["next action"] && "Next: " + row["next action"], row.due && "due " + row.due].filter(Boolean).join(" · ")) : null,
       el("div", { class: "row" },
-        app.files.includes("resume.md") ? el("button", { class: "btn", disabled: ui.example, onclick: e => exportResume(e.target) }, "Export resume to PDF") : null,
-        app.pdf ? el("a", { href: "/" + app.pdf, target: "_blank" }, "Open last exported PDF") : null),
-      result,
+        app.files.includes("resume.md") ? el("button", { class: "btn", disabled: ui.example || ui.results.apps[app.name]?.pending,
+          onclick: () => runExport(app.name, { company: app.name }) }, "Export resume to PDF") : null,
+        app.pdf ? el("a", { href: "/" + app.pdf, target: "_blank", rel: "noopener" }, "Open last exported PDF") : null),
+      exportNotice(ui.results.apps[app.name]),
       app.files.length ? el("div", { class: "tabs" }, app.files.map(f =>
         el("button", { class: "btn" + (f === file ? " primary" : ""), onclick: () => { ui.file = f; render(); } }, f.replace(/\.md$/, "")))) : el("p", { class: "muted" }, "This folder has no files yet."),
       file ? docPane(`applications/${app.name}/${file}`) : null))];
@@ -291,7 +309,7 @@ function viewApplications() {
 
 /* ---------- Stories (inside Prep) ---------- */
 function storiesPane() {
-  const { items, coverage } = S.stories;
+  const { items, coverage } = state.stories;
   const missing = coverage.filter(c => !c.titles.length);
   return el("div", {},
     el("p", { class: "muted" }, "Your interview stories in STAR form: Situation, Task, Action, Result. Read them here; practise by saying them aloud. Build one with ",
@@ -312,12 +330,12 @@ function storiesPane() {
 
 /* ---------- Prep ---------- */
 function viewPrep() {
-  const docs = S.prep.concat([{ title: `Stories (${S.stories.items.length})`, path: "#stories" }],
-    S.questions.length ? [{ title: "Questions I was asked", path: "#questions" }] : []);
+  const docs = state.prep.concat([{ title: `Stories (${state.stories.items.length})`, path: "#stories" }],
+    state.questions.length ? [{ title: "Questions I was asked", path: "#questions" }] : []);
   const current = docs.find(d => d.path === ui.doc) || docs[0];
   if (!current) return [el("div", { class: "card" }, "Nothing to read yet.")];
   const body = current.path === "#questions"
-    ? el("div", { class: "doc" }, S.questions.map(q => [el("h1", {}, q.company), el("div", { html: q.html })]))
+    ? el("div", { class: "doc" }, state.questions.map(q => [el("h1", {}, q.company), el("div", { html: q.html })]))
     : current.path === "#stories" ? storiesPane()
     : docPane(current.path);
   return [el("p", { class: "muted" }, "Your own material, to read before an interview. To change any of it, edit the file or ask your AI tool."),
@@ -329,16 +347,15 @@ function viewPrep() {
 
 /* ---------- Progress ---------- */
 function viewProgress() {
-  const rows = S.pipeline.rows, practice = S.practice;
-  const reached = stages => rows.filter(r => stages.includes(r.stage)).length;
+  const practice = state.practice, totals = state.progress;
   const scores = practice.map(p => parseFloat(p.score)).filter(n => !isNaN(n));
   const average = list => list.length ? (list.reduce((a, b) => a + b, 0) / list.length).toFixed(1) : "–";
   return [
     el("div", { class: "cards" },
-      el("div", { class: "stat" }, el("b", {}, rows.filter(r => r.stage !== "Drafted").length), el("span", {}, "Applied")),
-      el("div", { class: "stat" }, el("b", {}, reached(["Screen", "Technical", "Final", "Offer"])), el("span", {}, "In interviews")),
-      el("div", { class: "stat" }, el("b", {}, reached(["Offer"])), el("span", {}, "Offers")),
-      el("div", { class: "stat" }, el("b", {}, S.stories.coverage.filter(c => c.titles.length).length + "/" + S.stories.coverage.length), el("span", {}, "Questions with a story")),
+      el("div", { class: "stat" }, el("b", {}, totals.applied), el("span", {}, "Applications sent")),
+      el("div", { class: "stat" }, el("b", {}, totals.interviews), el("span", {}, "Interviews reached")),
+      el("div", { class: "stat" }, el("b", {}, totals.offers), el("span", {}, "Offers")),
+      el("div", { class: "stat" }, el("b", {}, state.stories.coverage.filter(c => c.titles.length).length + "/" + state.stories.coverage.length), el("span", {}, "Questions with a story")),
       el("div", { class: "stat" }, el("b", {}, practice.length), el("span", {}, "Practice sessions")),
       el("div", { class: "stat" }, el("b", {}, average(scores.slice(0, 5))), el("span", {}, "Avg score, last 5")),
       el("div", { class: "stat" }, el("b", {}, average(scores)), el("span", {}, "Avg score, all"))),
@@ -347,52 +364,48 @@ function viewProgress() {
       ? table(["Date", "Mode", "Topic", "Score", "Weakest point"], practice.map(p => [p.date, p.mode, p.topic, p.score, p["weakest point"]]))
       : el("div", { class: "card muted" }, "None logged yet. Each ", el("span", { class: "kw" }, "drill"), ", ", el("span", { class: "kw" }, "practice"), ", story practice and ", el("span", { class: "kw" }, "mock interview"), " adds a line here."),
     el("h2", {}, "Recent sessions"),
-    S.log.length ? S.log.map(entry => el("div", { class: "doc", style: "margin-bottom:10px", html: entry.html }))
+    state.log.length ? state.log.map(entry => el("div", { class: "doc", style: "margin-bottom:10px", html: entry.html }))
                  : el("div", { class: "card muted" }, "No daily-log entries yet. Your AI tool writes one at the end of each session.")
   ];
 }
 
 /* ---------- Tools ---------- */
+async function runArchive(apply) {
+  try { ui.results.archive = await api("/api/archive", { days: ui.days, apply }); }
+  catch (error) { ui.results.archive = { error: error.message }; }
+  ui.previewOpen = !!ui.results.archive.report && !ui.results.archive.applied;   // holds auto-refresh until applied
+  if (apply && !ui.results.archive.error) await load(); else render();
+}
 function viewTools() {
-  const exportResult = el("div"), archiveResult = el("div");
-  const source = el("select", { "aria-label": "Which resume" }, el("option", { value: "" }, "Master resume"),
-    S.versions.map(v => el("option", { value: v }, "Version: " + v)));
-  const paper = el("select", { "aria-label": "Paper size" }, el("option", { value: "letter" }, "US Letter"), el("option", { value: "a4" }, "A4"));
-  const days = el("input", { type: "number", min: "1", value: "30", style: "width:90px", "aria-label": "Days to keep" });
-  const applyButton = el("button", { class: "btn", disabled: true, onclick: () => runArchive(true) }, "Archive now");
-  async function exportBase() {
-    exportResult.replaceChildren(el("p", { class: "muted" }, "Exporting…"));
-    try {
-      const r = await api("/api/export", { paper: paper.value, role: source.value });
-      exportResult.replaceChildren(el("div", { class: "notice ok" }, "Exported. ",
-        r.pdf ? el("a", { href: "/" + r.pdf, target: "_blank" }, "Open PDF") : el("a", { href: "/" + r.html, target: "_blank" }, "Open HTML"),
-        r.pdf ? "" : " (no PDF: " + r.failure + ". Open the HTML and use Print, then Save as PDF.)"));
-    } catch (error) { exportResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
-  }
-  async function runArchive(apply) {
-    try {
-      const r = await api("/api/archive", { days: days.value, apply });
-      archiveResult.replaceChildren(el("div", { class: "card" }, el("pre", {}, r.report.join("\n")),
-        el("p", { class: "muted small", style: "margin-top:8px" }, apply ? "Done." : "Preview only. Nothing has changed yet.")));
-      applyButton.disabled = apply;
-      ui.previewOpen = !apply;
-      if (apply) load();
-    } catch (error) { archiveResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
-  }
+  const option = (value, label, current) => el("option", { value, selected: value === current }, label);
+  const source = el("select", { "aria-label": "Which resume", onchange: e => { ui.source = e.target.value; } },
+    option("", "Master resume", ui.source), state.versions.map(v => option(v, "Version: " + v, ui.source)));
+  const paper = el("select", { "aria-label": "Paper size", onchange: e => { ui.paper = e.target.value; } },
+    option("letter", "US Letter", ui.paper), option("a4", "A4", ui.paper));
+  const days = el("input", { type: "number", min: "1", value: ui.days, style: "width:90px", "aria-label": "Days to keep",
+    oninput: e => { ui.days = e.target.value; } });
+  const archived = ui.results.archive;
   return [
     el("h2", {}, "Export a resume"),
-    el("div", { class: "card" }, el("div", { class: "row" }, source, paper, el("button", { class: "btn primary", disabled: ui.example, onclick: exportBase }, "Export to PDF")),
-      el("p", { class: "muted small" }, "The master resume or a role version. Resumes tailored to one company are exported from the Applications tab."), exportResult),
+    el("div", { class: "card" }, el("div", { class: "row" }, source, paper,
+        el("button", { class: "btn primary", disabled: ui.example || ui.results.master?.pending,
+          onclick: () => runExport(null, { paper: ui.paper, role: ui.source }) }, "Export to PDF")),
+      el("p", { class: "muted small" }, "The master resume or a role version. Resumes tailored to one company are exported from the Applications tab."),
+      exportNotice(ui.results.master)),
     el("h2", {}, "Archive old entries"),
     el("div", { class: "card" }, el("div", { class: "row" }, "Keep the last", days, "days",
-        el("button", { class: "btn primary", disabled: ui.example, onclick: () => runArchive(false) }, "Preview"), applyButton),
-      el("p", { class: "muted small" }, "Moves older daily-log entries and closed applications into _archive folders. Preview first."), archiveResult),
+        el("button", { class: "btn primary", disabled: ui.example, onclick: () => runArchive(false) }, "Preview"),
+        el("button", { class: "btn", disabled: !archived?.report || archived.applied, onclick: () => runArchive(true) }, "Archive now")),
+      el("p", { class: "muted small" }, "Moves older daily-log entries and closed applications into _archive folders. Preview first."),
+      archived?.error ? el("div", { class: "notice" }, archived.error) : null,
+      archived?.report ? el("div", { class: "card" }, el("pre", {}, archived.report.join("\n")),
+        el("p", { class: "muted small", style: "margin-top:8px" }, archived.applied ? "Done. These were moved." : "Preview only. Nothing has changed yet.")) : null),
     el("h2", {}, "Keywords for your AI tool"),
-    el("div", { class: "card" }, el("div", { class: "kwlist" }, S.keywords.map(([keyword, about]) => [
+    el("div", { class: "card" }, el("div", { class: "kwlist" }, state.keywords.map(([keyword, about]) => [
       el("span", {}, el("span", { class: "kw" }, keyword)), el("span", { class: "about muted" }, about), copyButton(keyword.replace(/: \[.*\]$/, ": "))]))),
     el("h2", {}, "Scripts for the terminal"),
-    S.scripts.map(s => el("div", { class: "card" }, el("b", {}, s.name), el("span", { class: "muted" }, "  " + s.summary),
-      el("pre", { style: "margin-top:8px" }, s.commands.map(([command, about]) => command + (about ? "   # " + about : "")).join("\n"))))
+    state.scripts.map(script => el("div", { class: "card" }, el("b", {}, script.name), el("span", { class: "muted" }, "  " + script.summary),
+      el("pre", { style: "margin-top:8px" }, script.commands.map(([command, about]) => command + (about ? "   # " + about : "")).join("\n"))))
   ];
 }
 
@@ -402,37 +415,38 @@ function render() {
   if (!VIEWS[ui.tab]) ui.tab = "start";
   document.querySelector("#nav").replaceChildren(...TABS.map(([id, label]) =>
     el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; ui.previewOpen = false; history.replaceState(null, "", "#" + id); render(); } }, label)));
-  document.querySelector("#role-badge").textContent = S.roles.length ? S.roles.join(" · ") : "No roles yet";
+  document.querySelector("#role-badge").textContent = state.roles.length ? state.roles.join(" · ") : "No roles yet";
   const toggle = document.querySelector("#example-toggle");
-  toggle.hidden = !S.has_example;
+  toggle.hidden = !state.has_example;
   toggle.textContent = ui.example ? "Back to my data" : "See an example";
   document.querySelector("#banner").replaceChildren(...(ui.example ? [el("div", { class: "notice", role: "status" },
-    el("b", {}, "Example data."), " A fictional candidate, shown as of " + S.as_of + ". Read-only.",
+    el("b", {}, "Example data."), " A fictional candidate, shown as of " + state.as_of + ". Read-only.",
     el("button", { class: "btn", onclick: toggleExample }, "Back to my data"))] : []));
   document.querySelector("#main").replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
 }
 
 async function toggleExample() {
   ui.example = !ui.example;
-  Object.assign(ui, { company: null, file: null, doc: null, showPrompt: false, previewOpen: false });
-  draftRoles = null; docCache.clear(); S = null;
+  Object.assign(ui, { company: null, file: null, doc: null, showPrompt: false, previewOpen: false,
+                      results: { master: null, archive: null, apps: {} } });
+  draftRoles = null; docCache.clear(); state = null;
   await load();
   window.scrollTo(0, 0);
 }
 
-function rolesDirty() { return !!(!ui.example && draftRoles && S && JSON.stringify(draftRoles) !== JSON.stringify(S.roles)); }
+function rolesDirty() { return !!(!ui.example && draftRoles && state && JSON.stringify(draftRoles) !== JSON.stringify(state.roles)); }
 
 async function load() {
   try {
     const next = await api("/api/state");
     if (!rolesDirty()) draftRoles = null;       // pick up a role list changed outside the page
-    S = next;
+    state = next;
     const y = window.scrollY;
     render();
     window.scrollTo(0, y);
     setSync("Up to date · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   } catch (error) {
-    S = null;
+    state = null;
     document.querySelector("#main").replaceChildren(el("div", { class: "notice" },
       "Cannot reach the dashboard. Start it again from the start/ folder, or with: python3 scripts/app.py (" + error.message + ")"));
     setSync("Disconnected");
@@ -458,8 +472,8 @@ async function checkForChanges() {
   try {
     const response = await fetch(withMode("/api/version"));
     const { version } = await response.json();
-    if (!S) await load();                                   // reconnect after the dashboard was restarted
-    else if (version !== S.version) {
+    if (!state) await load();                                   // reconnect after the dashboard was restarted
+    else if (version !== state.version) {
       const reason = pauseReason();
       if (reason) setSync("New changes, paused (" + reason + ")");
       else await load();

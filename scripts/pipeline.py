@@ -2,78 +2,68 @@
 """Show the job pipeline from applications/PIPELINE.md.
 
 Usage:
-  python3 scripts/pipeline.py           print the pipeline in the terminal
-  python3 scripts/pipeline.py --html    also write output/pipeline.html
-  python3 scripts/pipeline.py --open    write the HTML and open it in a browser
+  python3 scripts/pipeline.py               print the pipeline in the terminal
+  python3 scripts/pipeline.py --html        also write output/pipeline.html
+  python3 scripts/pipeline.py --open        write the HTML and open it in a browser
+  python3 scripts/pipeline.py --file x.md   read a different pipeline file
 
 Needs Python 3.8+ and nothing else. Dates in the table must be YYYY-MM-DD.
 """
 
 import argparse
 import html
-import re
 import sys
 import webbrowser
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from common import ROOT, parse_date, read_table
+
 PIPELINE = ROOT / "applications" / "PIPELINE.md"
-OUTPUT = ROOT / "output" / "pipeline.html"
+PIPELINE_PAGE = ROOT / "output" / "pipeline.html"
 
 STAGES = ["Drafted", "Applied", "Screen", "Technical", "Final", "Offer",
           "Rejected", "Withdrawn", "No reply"]
+INTERVIEW_STAGES = {"Screen", "Technical", "Final", "Offer"}
 CLOSED = {"Rejected", "Withdrawn", "No reply"}
 STALE_DAYS = 21  # an Applied row with no contact for this long is flagged
+NO_COMPANY = "(no company name)"
 
 
-def parse_date(text):
-    try:
-        return datetime.strptime(text.strip(), "%Y-%m-%d").date()
-    except ValueError:
-        return None
+class PipelineError(Exception):
+    """The pipeline file is missing or has no table."""
 
 
-def split_cells(line):
-    """Split a table row on | but not on an escaped \\| inside a cell."""
-    return [c.strip().replace("\\|", "|")
-            for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+def normalise_stage(text):
+    """The stage in its standard spelling, or the text unchanged if it is not a known stage."""
+    known = {stage.lower(): stage for stage in STAGES}
+    return known.get(text.strip().lower(), text.strip())
 
 
 def read_rows(path):
-    """Return the rows of the first table whose header starts with Company."""
+    """Rows of the pipeline table as dicts, each with a list of problems found in it."""
     if not path.exists():
-        sys.exit(f"Pipeline file not found: {path}")
-    header, rows = None, []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line.startswith("|"):
-            if header:
-                break
-            continue
-        cells = split_cells(line)
-        if header is None:
-            if cells[0].lower() == "company":
-                header = [c.lower() for c in cells]
-            continue
-        if all(set(c) <= set("-: ") for c in cells):  # separator or blank row
-            continue
+        raise PipelineError(f"Pipeline file not found: {path}")
+    header, table = read_table(path.read_text(encoding="utf-8"), first_column="company")
+    if header is None:
+        raise PipelineError(f"No pipeline table found in {path}")
+    rows = []
+    for cells in table:
         row = dict(zip(header, cells))
         row["issues"] = []
         if len(cells) != len(header):
             row["issues"].append(f"has {len(cells)} columns, expected {len(header)}")
-        if row.get("company"):
-            rows.append(row)
-    if header is None:
-        sys.exit(f"No pipeline table found in {path}")
+        if not row.get("company"):
+            row["company"] = NO_COMPANY
+            row["issues"].append("has no company name")
+        rows.append(row)
     return rows
 
 
 def enrich(rows, today):
-    """Normalise the stage and work out which rows need attention."""
-    known = {s.lower(): s for s in STAGES}
+    """Normalise the stage, work out which rows need attention, and sort by stage then due date."""
     for row in rows:
-        row["stage"] = known.get(row.get("stage", "").lower(), row.get("stage", ""))
+        row["stage"] = normalise_stage(row.get("stage", ""))
         if row["stage"] not in STAGES:
             row["issues"].append(f"unknown stage '{row['stage']}'")
         for field in ("applied", "last contact", "due"):
@@ -88,18 +78,19 @@ def enrich(rows, today):
                 row["flag"] = f"overdue {(today - due).days}d"
             elif row["stage"] == "Applied" and last and (today - last).days >= STALE_DAYS:
                 row["flag"] = f"no reply {(today - last).days}d"
-        row["_sort"] = (
-            STAGES.index(row["stage"]) if row["stage"] in STAGES else len(STAGES),
-            due or date.max,
-            row["company"].lower(),
-        )
-    return sorted(rows, key=lambda r: r["_sort"])
+
+    def order(row):
+        stage = STAGES.index(row["stage"]) if row["stage"] in STAGES else len(STAGES)
+        return (stage, parse_date(row.get("due", "")) or date.max, row["company"].lower())
+
+    return sorted(rows, key=order)
 
 
 def stage_counts(rows):
     counts = {}
     for row in rows:
-        counts[row["stage"] or "(no stage)"] = counts.get(row["stage"] or "(no stage)", 0) + 1
+        name = row["stage"] or "(no stage)"
+        counts[name] = counts.get(name, 0) + 1
     ordered = [s for s in STAGES if s in counts] + [s for s in counts if s not in STAGES]
     return [(s, counts[s]) for s in ordered]
 
@@ -139,17 +130,18 @@ def print_terminal(rows):
             print(f"  - {line}")
 
 
-PAGE = """<!doctype html>
+# The colours mirror ui/index.html. Change both together.
+PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Job Pipeline</title>
 <style>
-  :root {{ --bg:#f7f7f5; --card:#fff; --text:#1c1c1a; --muted:#6b6b66; --line:#e3e3de;
-          --warn:#b45309; --warn-bg:#fef3c7; --ok:#166534; --ok-bg:#dcfce7; --off:#6b6b66; --off-bg:#ecece8; }}
+  :root {{ --bg:#f6f6f3; --card:#fff; --text:#1c1c1a; --muted:#66665f; --line:#e2e2dc;
+          --warn:#a04a00; --warn-bg:#fdf0d5; --ok:#17653a; --ok-bg:#dcf5e5; --off:#66665f; --off-bg:#ebebe6; }}
   @media (prefers-color-scheme: dark) {{
-    :root {{ --bg:#161615; --card:#1f1f1d; --text:#ecece8; --muted:#a3a39c; --line:#33332f;
+    :root {{ --bg:#161615; --card:#1f1f1d; --text:#ecece8; --muted:#a3a39c; --line:#35352f;
             --warn:#fcd34d; --warn-bg:#453208; --ok:#86efac; --ok-bg:#0f3d22; --off:#a3a39c; --off-bg:#2a2a27; }}
   }}
   body {{ margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--text);
@@ -192,16 +184,15 @@ PAGE = """<!doctype html>
 """
 
 
-def html_table(rows, with_flag=True):
+def html_table(rows):
     if not rows:
         return '<div class="empty">No applications yet. Add one with <code>apply: [company]</code>.</div>'
     esc = html.escape
-    head = "<tr><th>Company</th><th>Role</th><th>Stage</th><th>Applied</th><th>Last contact</th>" \
-           "<th>Next action</th><th>Due</th>" + ("<th>Attention</th>" if with_flag else "") + "</tr>"
+    head = ("<tr><th>Company</th><th>Role</th><th>Stage</th><th>Applied</th><th>Last contact</th>"
+            "<th>Next action</th><th>Due</th><th>Attention</th></tr>")
     body = []
     for r in rows:
         pill = '<span class="pill warn">' + esc(r["flag"]) + "</span>" if r["flag"] else ""
-        flag = "<td>" + pill + "</td>"
         body.append(
             f'<tr class="{"closed" if r["closed"] else ""}">'
             f'<td><b>{esc(r.get("company", ""))}</b></td><td>{esc(r.get("role", ""))}</td>'
@@ -209,7 +200,7 @@ def html_table(rows, with_flag=True):
             f'<td class="nowrap">{esc(r.get("applied", ""))}</td>'
             f'<td class="nowrap">{esc(r.get("last contact", ""))}</td>'
             f'<td>{esc(r.get("next action", ""))}</td>'
-            f'<td class="nowrap">{esc(r.get("due", ""))}</td>{flag if with_flag else ""}</tr>'
+            f'<td class="nowrap">{esc(r.get("due", ""))}</td><td>{pill}</td></tr>'
         )
     return f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table>"
 
@@ -226,12 +217,12 @@ def write_html(rows, today):
     if problems(rows):
         items = "".join(f"<li>{html.escape(line)}</li>" for line in problems(rows))
         fix = f"<h2>Rows to fix in applications/PIPELINE.md</h2><ul>{items}</ul>"
-    OUTPUT.parent.mkdir(exist_ok=True)
-    OUTPUT.write_text(PAGE.format(
+    PIPELINE_PAGE.parent.mkdir(exist_ok=True)
+    PIPELINE_PAGE.write_text(PAGE_TEMPLATE.format(
         summary=f"{len(rows)} applications, {len(active)} active",
         today=today.isoformat(), cards=cards, attention=attention, problems=fix, table=html_table(rows),
     ), encoding="utf-8")
-    return OUTPUT
+    return PIPELINE_PAGE
 
 
 def main():
@@ -242,11 +233,14 @@ def main():
     args = parser.parse_args()
 
     today = date.today()
-    rows = enrich(read_rows(args.file), today)
+    try:
+        rows = enrich(read_rows(args.file), today)
+    except PipelineError as error:
+        sys.exit(str(error))
     print_terminal(rows)
     if args.html or args.open:
         path = write_html(rows, today)
-        print(f"\nWrote {path.relative_to(ROOT)}")
+        print(f"\nWrote {path.relative_to(ROOT).as_posix()}")
         if args.open:
             webbrowser.open(path.as_uri())
 
