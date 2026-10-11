@@ -14,6 +14,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `audit` | `modes/audit.md` | Evidence check on every resume line |
 | `apply: [company]` | `modes/apply.md` | Screen, fit, tailor, track |
 | `check in` | `modes/check-in.md` | Daily standup and plan |
+| `pipeline` | `modes/pipeline.md` | Show every application and its status |
 | `gaps` | `modes/gaps.md` | Re-rank gaps by evidence |
 | `drill: [topic]` | `modes/drill.md` | 5 scored questions |
 | `troubleshoot` | `modes/troubleshoot.md` | Broken-system scenario |
@@ -25,22 +26,26 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 
 | File | Holds |
 |---|---|
-| `profile.md` | Who I am, verified experience, claims I must not inflate |
-| `resume.md` | Source of truth for the resume |
-| `linkedin-profile.md` | Text currently live on LinkedIn |
+| `profile/profile.md` | Who I am, verified experience, claims I must not inflate |
+| `profile/resume.md` | Source of truth for the resume |
+| `profile/linkedin-profile.md` | Text currently live on LinkedIn |
 | `applications/PIPELINE.md` | Every application and its next action |
 | `applications/SCREENING-RUBRIC.md` | Apply or skip criteria |
 | `applications/[company]/` | Posting, fit, tailored resume, interview notes |
 | `progress/weak-spots.md` | Gaps with evidence, ranked |
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
+| `scripts/pipeline.py` | Prints the pipeline and builds the visual version |
+| `output/` | Generated views only. Never edit by hand, never store source data here |
+
+The repo root holds only this file and `README.md`. Put new files in the folder they belong to.
 
 ## Always-on rules
 
-1. Nothing goes on a resume, profile or cover note that is not backed by `profile.md`.
+1. Nothing goes on a resume, profile or cover note that is not backed by `profile/profile.md`.
 2. Be honest. If an answer is vague, say "that's vague" and ask again. Do not rewrite it for me.
 3. An application counts as sent only when I confirm I submitted it.
 4. A gap is real only with evidence from a posting or an interview. No general roadmaps.
-5. At the end of a session, update `PIPELINE.md` and add a `daily-log.md` entry with one dated next action.
+5. At the end of a session, update `applications/PIPELINE.md` (dates as YYYY-MM-DD) and add a `progress/daily-log.md` entry with one dated next action.
 6. No secrets, kubeconfigs, internal hostnames or employer config in this repo.
 7. When I correct you or state a preference, save it under `notes/` and add a line to `notes/INDEX.md`. Do not add it to this file.

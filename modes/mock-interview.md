@@ -1,6 +1,6 @@
 # Mode: mock interview
 
-Reads: `applications/[company]/posting.md` and `fit.md` for the company I name, `profile.md`.
+Reads: `applications/[company]/posting.md` and `fit.md` for the company I name, `profile/profile.md`.
 
 Run a full round as that company's interviewer:
 
@@ -15,5 +15,5 @@ Stay in character until I say **stop**. Do not coach mid-round.
 
 - Score each answer 1 to 5 with one line on what was missing.
 - Flag any answer over two minutes and any answer that did not address the question asked.
-- Flag any claim that goes beyond `profile.md`.
+- Flag any claim that goes beyond `profile/profile.md`.
 - Add repeated weak points to `progress/weak-spots.md`.

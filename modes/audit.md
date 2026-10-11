@@ -1,8 +1,8 @@
 # Mode: audit
 
-Reads: `resume.md`, `profile.md`.
+Reads: `profile/resume.md`, `profile/profile.md`.
 
-Go through `resume.md` one line at a time. One line per turn, do not batch. For each line ask:
+Go through `profile/resume.md` one line at a time. One line per turn, do not batch. For each line ask:
 
 - What did I personally do, as opposed to my team?
 - At what scale (nodes, services, deploys per day, users, spend)?
@@ -15,11 +15,11 @@ Then keep it, rewrite it to what I can defend, or cut it.
 
 - If I say "we," ask which part was mine.
 - No source, no number.
-- A tool I touched once goes under "Exposure only" in `profile.md`, not in a skills list.
+- A tool I touched once goes under "Exposure only" in `profile/profile.md`, not in a skills list.
 - Check omissions too. If the strongest thing I did is missing or buried, say so and move it up.
 
 ## Output
 
-- Updated `resume.md`.
-- `profile.md` filled in: the verified table, exposure list, claims never to inflate, strongest evidence.
+- Updated `profile/resume.md`.
+- `profile/profile.md` filled in: the verified table, exposure list, claims never to inflate, strongest evidence.
 - A short list of what was cut and why.

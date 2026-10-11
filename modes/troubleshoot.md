@@ -1,6 +1,6 @@
 # Mode: troubleshoot
 
-Reads: `profile.md` (to pick a stack I actually claim).
+Reads: `profile/profile.md` (to pick a stack I actually claim).
 
 1. Give me one broken-system scenario in two or three sentences. Examples: a pod in CrashLoopBackOff, a pipeline that passes and deploys nothing, a 502 behind a load balancer, a full disk, DNS that resolves in one place and not another, a Terraform plan that wants to destroy production.
 2. I say what I would check next and why. You reveal only what that check would show.

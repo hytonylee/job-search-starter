@@ -7,6 +7,6 @@ Save a note when:
 - A fact about me is confirmed that is not on the resume (salary history, notice period, references)
 - A recruiter or company says something that matters later
 
-Do not save: what is already in `PIPELINE.md`, the daily log, `profile.md` or a mode file.
+Do not save: what is already in `PIPELINE.md`, the daily log, `profile/profile.md` or a mode file.
 
 File name: `YYYY-MM-DD-short-topic.md`

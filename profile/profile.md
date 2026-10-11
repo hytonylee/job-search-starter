@@ -1,6 +1,6 @@
 # Profile
 
-Filled in during `setup` and `audit`. Until then, treat every claim in `resume.md` as unverified.
+Filled in during `setup` and `audit`. Until then, treat every claim in `profile/resume.md` as unverified.
 
 - **Name / location / work authorization:** [fill in]
 - **Target role:** [e.g. DevOps Engineer, Platform Engineer, SRE]
