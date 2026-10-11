@@ -7,7 +7,8 @@ Reads: `applications/SCREENING-RUBRIC.md`, `profile/profile.md`, `profile/resume
 3. Write `applications/[company]/fit.md`: each required item, whether I meet it, and the evidence from `profile/profile.md`.
 4. Draft `applications/[company]/resume.md`, tailored by reordering and rewording verified items only. Never add a skill that is not in `profile/profile.md`.
 5. Draft `cover-note.md` only if the posting asks for one. Under 150 words.
-6. Add a row to `applications/PIPELINE.md` as **Drafted**. Change it to **Applied** only when I say I submitted.
-7. Add each unmet required item to `progress/weak-spots.md`, or raise its count if it is already there.
+6. When I approve the tailored resume, run `python3 scripts/resume.py [company]` and give me the PDF path.
+7. Add a row to `applications/PIPELINE.md` as **Drafted**. Change it to **Applied** only when I say I submitted.
+8. Add each unmet required item to `progress/weak-spots.md`, or raise its count if it is already there.
 
 Company folder layout is described in `applications/_example-company/README.md`.

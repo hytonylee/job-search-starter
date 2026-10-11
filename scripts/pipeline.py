@@ -34,6 +34,12 @@ def parse_date(text):
         return None
 
 
+def split_cells(line):
+    """Split a table row on | but not on an escaped \\| inside a cell."""
+    return [c.strip().replace("\\|", "|")
+            for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
 def read_rows(path):
     """Return the rows of the first table whose header starts with Company."""
     if not path.exists():
@@ -45,9 +51,7 @@ def read_rows(path):
             if header:
                 break
             continue
-        # split on | but not on an escaped \| inside a cell
-        cells = [c.strip().replace("\\|", "|")
-                 for c in re.split(r"(?<!\\)\|", line.strip("|"))]
+        cells = split_cells(line)
         if header is None:
             if cells[0].lower() == "company":
                 header = [c.lower() for c in cells]

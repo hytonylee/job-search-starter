@@ -29,11 +29,11 @@ modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
 progress/            daily log and the ranked gap list
 notes/               long-term memory, one fact per file
-scripts/             small helper scripts
-output/              generated views, such as the pipeline page (not committed)
+scripts/             pipeline viewer, resume export, archiving, help
+output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
-Only `AGENTS.md` and `README.md` sit at the top level. Source files live in their folders, and anything a script generates goes to `output/`.
+Only `AGENTS.md` and `README.md` sit at the top level. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
 
 ## Setup, about 10 minutes
 
@@ -78,11 +78,21 @@ Everything else is role-neutral.
 - One gap rep from `progress/weak-spots.md`.
 - `linkedin sync` whenever `profile/resume.md` changes.
 
-All keywords are listed in `AGENTS.md`.
+## List every command
+
+Type `help` (or `commands`) in your AI tool, or run:
+
+```bash
+python3 scripts/help.py
+```
+
+It prints every keyword and every script command. The list is built from the table in `AGENTS.md` and each script's own usage text, so it stays current when you add your own. The word is `help`, not `/help`, because `/help` is already a built-in command in most of these tools.
+
+The scripts need Python 3.8 or newer and nothing else to install.
 
 ## See your pipeline
 
-Type `pipeline` in your AI tool, or run the script yourself. It needs Python 3.8 or newer and nothing else.
+Type `pipeline` in your AI tool, or run the script yourself.
 
 ```bash
 python3 scripts/pipeline.py           # table in the terminal
@@ -91,6 +101,33 @@ python3 scripts/pipeline.py --open    # writes the page and opens it in your bro
 ```
 
 It shows every application with its stage, a count per stage, and flags two things: a next action whose due date has passed, and an application with no contact for 21 days. It reads `applications/PIPELINE.md`, so keep that table's column names and use `YYYY-MM-DD` dates.
+
+## Export your resume
+
+Type `export resume` or `export resume: [company]`, or run:
+
+```bash
+python3 scripts/resume.py              # the base resume, profile/resume.md
+python3 scripts/resume.py acme         # the tailored one, applications/acme/resume.md
+python3 scripts/resume.py acme --open  # export, then open it
+python3 scripts/resume.py --paper a4   # A4 instead of US Letter
+```
+
+Each run writes three files to `output/resume/general/` or `output/resume/<company>/`: a clean `.md`, an `.html`, and a `.pdf`. They are named after the first heading in the resume, for example `Jane-Doe-Resume.pdf`.
+
+The PDF is printed by a Chromium-based browser you already have (Chrome, Chromium, Edge or Brave). If none is found, open the `.html` file in any browser and use Print, then Save as PDF. The layout is a plain single column with real text, which is what applicant tracking systems read best. Always open the PDF and check it before sending.
+
+## Archive old entries
+
+Type `archive` about once a month, or run:
+
+```bash
+python3 scripts/archive.py            # dry run: shows what would move
+python3 scripts/archive.py --apply    # moves it
+python3 scripts/archive.py --days 14  # 14 day cut-off instead of 30
+```
+
+Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<year>.md`. Pipeline rows that are Rejected, Withdrawn or No reply and were last touched before the cut-off move to `applications/_archive/PIPELINE-ARCHIVE.md`. Company folders stay where they are. This keeps the files the AI reads every day short.
 
 ## Three things that make it work
 
@@ -111,11 +148,11 @@ It shows every application with its stage, a count per stage, and flags two thin
 - **Very little is automated.** The pipeline is a Markdown table the AI edits, and the script only displays it. LinkedIn is updated by hand, and there are no reminders. If you skip `check in`, nothing nudges you.
 - **The pipeline script is strict about format.** It lists rows with an unknown stage, a date that is not `YYYY-MM-DD`, or missing columns, but it cannot flag a follow-up on those rows until you fix them. Renaming a column breaks it.
 - **Only two things are flagged.** An overdue next action, and an application in the Applied stage with no contact for 21 days. Silence after an interview is not flagged unless you set a due date.
-- **No resume export.** `profile/resume.md` is Markdown. Turning it into a PDF is up to you.
+- **Resume export is basic.** One fixed single-column layout. It handles headings, paragraphs, bullets, bold, italic and links, but not tables, images or columns. The PDF needs a Chromium-based browser, and nothing checks the page count for you.
 - **Memory is manual.** Codex and Cursor do not carry memory between sessions, so anything worth keeping has to be written to `notes/`.
 - **The audit is only as honest as you are.** The AI cannot check your claims against anything except what you tell it.
 - **The AI can still be wrong.** It can misread a posting or score an answer too kindly. Treat scores as a prompt to think, not a verdict.
-- **Files grow.** `daily-log.md` and `PIPELINE.md` get long over months and cost more to read. Move old entries to an archive file now and then.
+- **Archiving is manual and by date only.** Nothing reminds you to run it. It skips a closed application with no valid date, and it never moves company folders or old notes.
 - **Your data goes to your AI provider.** Whatever the tool reads is sent to that provider under its terms. Check them before adding anything sensitive.
 - **It needs some comfort with a code editor or terminal.** A non-technical user will want someone beside them for the first session.
 
@@ -123,9 +160,8 @@ It shows every application with its stage, a count per stage, and flags two thin
 
 - **Role packs.** Ready-made `profile/profile.md`, practice mode and rubric for other roles (frontend, backend, product, design, data) so no hand-editing is needed.
 - **A richer pipeline view.** Compute the weekly numbers and reply rate automatically, flag silence after interviews, and chart applications over time.
-- **Resume export.** A one-command Markdown to PDF build with a clean template.
+- **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
 - **Native commands per tool.** Slash commands for Cursor and Codex that wrap each mode, so the right file is always loaded.
-- **Log archiving.** A mode that rolls old log entries and closed applications into archive files.
 - **More modes.** Offer review and negotiation, networking and referral tracking, recruiter reply drafting, a weekly review.
 - **A worked example.** A fictional candidate carried through the whole loop, so a new user can see what filled-in files look like.
 - **Tested notes per tool.** What actually happens in Codex and Cursor, once someone has run it there.

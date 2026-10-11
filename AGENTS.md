@@ -10,6 +10,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 
 | Keyword | File | Purpose |
 |---|---|---|
+| `help` | `modes/help.md` | List every keyword and script command (also: `commands`) |
 | `setup` | `modes/setup.md` | First session: LinkedIn export to resume |
 | `audit` | `modes/audit.md` | Evidence check on every resume line |
 | `apply: [company]` | `modes/apply.md` | Screen, fit, tailor, track |
@@ -21,6 +22,8 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `mock interview` | `modes/mock-interview.md` | Full round for a pipeline company |
 | `debrief: [company]` | `modes/debrief.md` | Log a real interview |
 | `linkedin sync` | `modes/linkedin-sync.md` | Push resume changes to the profile |
+| `export resume` | `modes/export.md` | Resume to Markdown, HTML and PDF |
+| `archive` | `modes/archive.md` | Move old log entries and closed applications |
 
 ## Where things live
 
@@ -35,7 +38,8 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `progress/weak-spots.md` | Gaps with evidence, ranked |
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
-| `scripts/pipeline.py` | Prints the pipeline and builds the visual version |
+| `scripts/` | `pipeline.py`, `resume.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
+| `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |
 | `output/` | Generated views only. Never edit by hand, never store source data here |
 
 The repo root holds only this file and `README.md`. Put new files in the folder they belong to.
