@@ -32,6 +32,7 @@ notes/               long-term memory, one fact per file
 roles/               ready-made role packs: devops, frontend, backend, product, design, data
 scripts/             dashboard, pipeline viewer, resume export, archiving, role picker, help
 ui/                  the dashboard page
+start/               double-click launchers for the dashboard (Mac and Windows)
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
@@ -46,18 +47,30 @@ Only `AGENTS.md` and `README.md` sit at the top level. Source files live in thei
    - **Codex:** run `codex` inside the folder. It reads `AGENTS.md` automatically.
    - **Cursor:** open the folder and use Agent mode. It reads `AGENTS.md` automatically.
    - **Claude Code:** run `claude` inside the folder. Create a `CLAUDE.md` containing the single line `@AGENTS.md`.
-5. Start the dashboard with `python3 scripts/app.py` and [choose your role](#choose-your-role) on the Start tab.
+5. Open [the dashboard](#the-dashboard) and [choose your role](#choose-your-role) on the Start tab.
 6. Type `setup` in your AI tool.
 
 ## The dashboard
 
 A local web page for reading your material, so you are not limited to the terminal.
 
-```bash
-python3 scripts/app.py
-```
+**To open it, double-click the launcher in the `start/` folder:**
 
-It opens in your browser. It runs only on your own computer, sends nothing anywhere, and stops when you press Ctrl+C.
+| Your computer | Double-click |
+|---|---|
+| Mac | `start/dashboard-mac.command` |
+| Windows | `start/dashboard-windows.bat` |
+
+A small window opens and stays open while the dashboard runs, and the page appears in your browser at `http://127.0.0.1:8765/`. To stop it, close that window. On Linux, or if you prefer a terminal, run `python3 scripts/app.py` from the repo folder.
+
+It runs only on your own computer and sends nothing anywhere. That also means the address works only on your machine: it is not a link you can send to someone else.
+
+If the launcher does not start:
+
+- **"Python 3 is not installed."** Install it from [python.org/downloads](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" during the install. On a Mac, the first run may instead offer to install Apple's developer tools, which include Python: accept, wait for it to finish, and double-click again.
+- **Mac says the file cannot be opened, or is from an unidentified developer.** This happens if you downloaded the repo as a ZIP instead of cloning it. Right-click the file, choose Open, then Open again. You only need to do this once.
+- **Mac says you do not have permission.** In Terminal, run `chmod +x start/dashboard-mac.command` from the repo folder.
+- **Windows shows "Windows protected your PC".** Click More info, then Run anyway.
 
 | Tab | What you see |
 |---|---|
@@ -176,7 +189,8 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **The AI can still be wrong.** It can misread a posting or score an answer too kindly. Treat scores as a prompt to think, not a verdict.
 - **Archiving is manual and by date only.** Nothing reminds you to run it. It skips a closed application with no valid date, and it never moves company folders or old notes.
 - **Your data goes to your AI provider.** Whatever the tool reads is sent to that provider under its terms. Check them before adding anything sensitive.
-- **You still need a terminal once or twice.** The dashboard is started from one, and the AI tool is opened on the folder. A non-technical user will want someone beside them for the first session.
+- **The AI tool still needs setting up.** The dashboard opens with a double-click, but Codex, Cursor or Claude Code has to be installed and opened on the folder, and Python has to be present. A non-technical user will want someone beside them for the first session.
+- **The Windows launcher is untested.** It was written and checked on a Mac. If it fails, run `py -3 scripts\app.py` in a Command Prompt from the repo folder and report what it prints.
 - **The dashboard is for reading.** Apart from the role picker, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
 - **The dashboard and role packs are new.** The page logic was tested with sample data but has had little real use. The five non-DevOps role packs were written from general knowledge of those interviews, not from a real search in each role, so expect to adjust them.
 - **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.

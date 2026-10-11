@@ -196,7 +196,7 @@ def pick_source(company):
 
 def show(path):
     try:
-        return str(path.relative_to(ROOT))
+        return path.relative_to(ROOT).as_posix()
     except ValueError:
         return str(path)
 

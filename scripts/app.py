@@ -228,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/api/file":
             path = safe_md(parse_qs(url.query).get("path", [""])[0])
             if path:
-                self.json(200, {"path": str(path.relative_to(ROOT)), "html": render_md(path.read_text(encoding="utf-8"))})
+                self.json(200, {"path": path.relative_to(ROOT).as_posix(), "html": render_md(path.read_text(encoding="utf-8"))})
             else:
                 self.json(404, {"error": "File not found"})
         elif url.path.startswith("/output/"):

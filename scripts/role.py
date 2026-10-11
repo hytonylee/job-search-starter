@@ -58,7 +58,7 @@ def edited_files():
         text = target.read_text(encoding="utf-8")
         originals = [(ROLES / role / name).read_text(encoding="utf-8") for role, _ in list_roles()]
         if text not in originals:
-            edited.append(str(target.relative_to(ROOT)))
+            edited.append(target.relative_to(ROOT).as_posix())
     return edited
 
 
@@ -80,7 +80,7 @@ def apply_role(role_id, force=False):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROLES / role_id / name, target)
     return {"applied": True, "role": role_id, "edited": edited,
-            "backup": str(backup.relative_to(ROOT)) if backup else None}
+            "backup": backup.relative_to(ROOT).as_posix() if backup else None}
 
 
 def main():

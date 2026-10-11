@@ -40,7 +40,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `progress/practice-log.md` | One row per drill, practice or mock interview, with the score |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
 | `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `archive.py`, `role.py`, `help.py`. Prefer running these over reading the files they cover |
-| `roles/`, `ui/` | Role packs and the dashboard page. Do not read in normal sessions |
+| `roles/`, `ui/`, `start/` | Role packs, the dashboard page and its double-click launchers. Do not read in normal sessions |
 | `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |
 | `output/` | Generated views only. Never edit by hand, never store source data here |
 
