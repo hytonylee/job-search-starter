@@ -1,5 +1,7 @@
 # Mode: audit
 
+Purpose: Check every resume line for evidence.
+
 Reads: `profile/resume.md`, `profile/profile.md`.
 
 Go through `profile/resume.md` one line at a time. One line per turn, do not batch. For each line ask:

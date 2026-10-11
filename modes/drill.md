@@ -1,5 +1,7 @@
 # Mode: drill: [topic]
 
+Purpose: Five scored questions on one topic.
+
 Reads: nothing unless the topic is a row in `progress/weak-spots.md`.
 
 1. Ask 5 questions on the topic, one at a time, easiest first.

@@ -1,5 +1,7 @@
 # Mode: export resume
 
+Purpose: Export a resume to PDF (add `: [company]` or `: role [name]`).
+
 `export resume` exports the master resume. `export resume: [company]` exports that company's tailored one. `export resume: role [name]` exports a role version. Reads: nothing.
 
 1. Run `python3 scripts/resume.py`, `python3 scripts/resume.py [company]` or `python3 scripts/resume.py --role [name]`. Add `--paper a4` if I am applying outside North America.

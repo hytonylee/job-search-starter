@@ -1,5 +1,7 @@
 # Mode: role resume: [role]
 
+Purpose: Build the resume version for one target role.
+
 Reads: `profile/roles.md`, `profile/resume.md`, `profile/profile.md`.
 
 Build the resume version for one target role, so applications for that role start from a closer base.

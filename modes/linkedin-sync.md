@@ -1,5 +1,7 @@
 # Mode: linkedin sync
 
+Purpose: Get the text to update my LinkedIn profile.
+
 Reads: `profile/resume.md`, `profile/linkedin-profile.md`, `profile/profile.md`.
 
 `profile/resume.md` is the source. LinkedIn is a copy.

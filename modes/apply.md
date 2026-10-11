@@ -1,5 +1,7 @@
 # Mode: apply: [company]
 
+Purpose: Check a posting, tailor the resume and track the application.
+
 Reads: `applications/SCREENING-RUBRIC.md`, `profile/roles.md`, `profile/profile.md`. I paste the posting.
 
 1. Save the posting to `applications/[company]/posting.md`.

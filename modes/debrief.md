@@ -1,5 +1,7 @@
 # Mode: debrief: [company]
 
+Purpose: Log a real interview while I remember it.
+
 Run within an hour of any real screen or interview. Reads: `applications/[company]/`.
 
 1. Ask me to recall every question I was asked, in order. Prompt "what came next?" until I run out.

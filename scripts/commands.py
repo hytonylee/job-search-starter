@@ -4,28 +4,39 @@
 Usage:
   python3 scripts/commands.py    print keywords and script commands
 
-Keywords are read from the table in AGENTS.md and script commands from each
-script's own usage text. A script without a Usage block is a helper, not a
-command, and is left out.
+Keywords come from the list in AGENTS.md, each with the "Purpose:" line of its
+file in modes/. Script commands come from each script's own usage text. A
+script without a Usage block is a helper, not a command, and is left out.
 """
 
 import ast
 import re
 import sys
 
-from common import ROOT, split_cells
+from common import ROOT
 
 AGENTS = ROOT / "AGENTS.md"
+MODES = ROOT / "modes"
 SCRIPTS = ROOT / "scripts"
 
 
+def mode_file(keyword):
+    """modes/check-in.md for "check in"; modes/apply.md for "apply: [company]"."""
+    return MODES / (keyword.split(":")[0].strip().replace(" ", "-") + ".md")
+
+
 def keywords():
-    """Rows of the Modes table: (keyword, purpose)."""
+    """Every keyword as (keyword, purpose), in the order AGENTS.md lists them."""
+    section = re.search(r"^## Keywords\n(.*?)(?=^## |\Z)", AGENTS.read_text(encoding="utf-8"), flags=re.M | re.S)
+    listed = [line for line in (section.group(1) if section else "").splitlines() if " · " in line]
     rows = []
-    for line in AGENTS.read_text(encoding="utf-8").splitlines():
-        cells = split_cells(line)
-        if len(cells) == 3 and re.fullmatch(r"`modes/[\w-]+\.md`", cells[1]):
-            rows.append((cells[0].strip("`"), cells[2]))
+    for keyword in re.findall(r"`([^`]+)`", listed[0] if listed else ""):
+        path = mode_file(keyword)
+        purpose = ""
+        if path.exists():
+            found = re.search(r"^Purpose:\s*(.+?)\.?$", path.read_text(encoding="utf-8"), flags=re.M)
+            purpose = found.group(1) if found else ""
+        rows.append((keyword, purpose or "(no mode file found)"))
     return rows
 
 

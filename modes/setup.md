@@ -1,5 +1,7 @@
 # Mode: setup
 
+Purpose: Onboarding interview: sets the project up in seven steps.
+
 The onboarding interview. It sets the project up by asking me questions, one step at a time. Safe to run again: it picks up where it stopped.
 
 ## How to run it

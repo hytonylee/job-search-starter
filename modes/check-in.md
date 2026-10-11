@@ -1,5 +1,7 @@
 # Mode: check in
 
+Purpose: Plan today from the pipeline and the gap list.
+
 Reads: the output of `python3 scripts/pipeline.py` (open `applications/PIPELINE.md` only to edit it, or if the script cannot run), the newest entry only in `progress/daily-log.md`, the top two rows of `progress/weak-spots.md`.
 
 1. Ask what I did against yesterday's committed next action. If I did not do it, ask why once, then move on.

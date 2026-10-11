@@ -1,5 +1,7 @@
 # Mode: story
 
+Purpose: Build one interview story, or practise one with `story: [title]`.
+
 `story` builds a new interview story. `story: [title]` improves or practises an existing one. Reads: `profile/profile.md`, `profile/roles.md`, and the one story file being worked on.
 
 ## Build a story

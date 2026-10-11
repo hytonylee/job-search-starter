@@ -1,5 +1,7 @@
 # Mode: research: [company]
 
+Purpose: Look the company up on the web, with sources.
+
 Needs web access. If you cannot search the web in this session, say so and stop. Do not answer from memory.
 
 Reads: `applications/[company]/posting.md` and `fit.md` if they exist, `profile/roles.md`.

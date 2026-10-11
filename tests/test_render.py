@@ -11,7 +11,7 @@ class Links(unittest.TestCase):
 
     def test_safe_links_are_kept(self):
         self.assertIn('href="https://a.example/x?b=1&amp;c=2"', render.inline("[t](https://a.example/x?b=1&c=2)"))
-        self.assertIn('href="mailto:a@b.co"', render.inline("[t](mailto:a@b.co)"))
+        self.assertIn('href="mailto:a@example.com"', render.inline("[t](mailto:a@example.com)"))
 
     def test_bare_domain_gets_https(self):
         self.assertIn('href="https://linkedin.com/in/x"', render.inline("[t](linkedin.com/in/x)"))

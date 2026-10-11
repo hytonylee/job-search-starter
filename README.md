@@ -194,7 +194,7 @@ output/              generated files: pipeline page, exported resumes (not commi
 
 Only `AGENTS.md` and `README.md` sit at the top level, apart from git's own dotfiles and, if you use Claude Code, a one-line `CLAUDE.md` pointer. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
 
-**Keeping it cheap to run.** `AGENTS.md` is loaded into every session, so it stays a short index. Each keyword has its own file in `modes/`, which the AI opens only when you type that keyword. Keep it that way: new detail goes in a mode file, `profile/profile.md` or `notes/`, never in `AGENTS.md`. Start a fresh session for each task instead of running one long one.
+**Keeping it cheap to run.** `AGENTS.md` is loaded into every session, so it stays a short index of about 400 words: the keywords on one line, where files live, and seven rules. Each keyword has its own file in `modes/`, which the AI opens only when you type that keyword. Keep it that way: new detail goes in a mode file, `profile/profile.md` or `notes/`, never in `AGENTS.md`. Start a fresh session for each task instead of running one long one.
 
 ## Scripts, for the terminal
 
@@ -206,7 +206,7 @@ Everything below can also be done from the dashboard or by typing a keyword to t
 python3 scripts/commands.py
 ```
 
-Prints every keyword and every script command. The list is built from the table in `AGENTS.md` and each script's own usage text, so it stays current when you add your own.
+Prints every keyword and every script command. The list is built from the keyword list in `AGENTS.md`, the `Purpose:` line of each mode file and each script's own usage text, so it stays current when you add your own.
 
 **See your pipeline**
 

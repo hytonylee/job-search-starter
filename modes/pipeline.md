@@ -1,5 +1,7 @@
 # Mode: pipeline
 
+Purpose: Show every application and its status.
+
 Reads: nothing. Run the script and use its output instead of opening `applications/PIPELINE.md`.
 
 1. Run `python3 scripts/pipeline.py --html`.

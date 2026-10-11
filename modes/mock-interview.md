@@ -1,5 +1,7 @@
 # Mode: mock interview
 
+Purpose: A full practice interview for a company I applied to.
+
 Reads: `applications/[company]/posting.md`, `fit.md` and `research.md` (if it exists) for the company I name, `profile/profile.md`, the output of `python3 scripts/stories.py`.
 
 Run a full round as that company's interviewer:

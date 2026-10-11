@@ -1,5 +1,7 @@
 # Mode: roles
 
+Purpose: Tailor profile, practice and rubric to my target roles.
+
 Run during `setup`, and again whenever I change my target roles. Reads: `profile/roles.md`, `profile/profile.md`, `modes/practice.md`, `applications/SCREENING-RUBRIC.md`, and the closest folders in `roles/`.
 
 1. Read `profile/roles.md`. If it has no real roles, ask me which job titles I am applying for (several is fine) and write them there, primary first, as `- ` lines between the two marker lines. Keep the markers.

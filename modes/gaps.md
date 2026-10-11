@@ -1,5 +1,7 @@
 # Mode: gaps
 
+Purpose: Rank the skills I am missing and name the top two.
+
 Reads: `progress/weak-spots.md`.
 
 1. Re-rank the real gaps by evidence count (postings applied to plus interview questions).

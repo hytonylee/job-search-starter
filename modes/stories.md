@@ -1,5 +1,7 @@
 # Mode: stories
 
+Purpose: Which interview questions have a story, and which do not.
+
 Shows which interview questions I have a story for. Reads: nothing. Run the script instead of opening the story files.
 
 1. Run `python3 scripts/stories.py` and show me the output as is. It flags a story that is missing a part, untagged, long, has a result with no number, says "we" more than "I", or was never practised.

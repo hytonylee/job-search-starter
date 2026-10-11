@@ -1,5 +1,7 @@
 # Mode: practice
 
+Purpose: The live exercise for a target role (also `practice: [role]`).
+
 `practice`, or `practice: [role]`. Reads: `profile/roles.md`, `profile/profile.md` (to stay inside what I claim).
 
 1. If I have more than one target role and did not name one, ask which.

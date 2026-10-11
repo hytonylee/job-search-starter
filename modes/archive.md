@@ -1,5 +1,7 @@
 # Mode: archive
 
+Purpose: Move old log entries and closed applications out of the way.
+
 Run about once a month, or when `progress/daily-log.md` or the pipeline gets long. Reads: nothing.
 
 1. Run `python3 scripts/archive.py`. This is a dry run and changes nothing.
