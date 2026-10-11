@@ -59,8 +59,8 @@ A local web page for reading your material, so you are not limited to the termin
 
 | Your computer | Double-click |
 |---|---|
-| Mac | `start/dashboard-mac.command` |
-| Windows | `start/dashboard-windows.bat` |
+| Mac | `start/Open dashboard (Mac).command` |
+| Windows | `start/Open dashboard (Windows).bat` |
 
 A small window opens and stays open while the dashboard runs, and the page appears in your browser at `http://127.0.0.1:8765/`. To stop it, close that window. If you double-click again while it is running, it opens the one already running instead of starting a second. If that port is taken by another program, it uses the next free one and says which. On Linux, or if you prefer a terminal, run `python3 scripts/app.py` from the repo folder.
 
@@ -70,7 +70,7 @@ If the launcher does not start:
 
 - **"Python 3 is not installed."** Install it from [python.org/downloads](https://www.python.org/downloads/). On Windows, tick "Add python.exe to PATH" during the install. On a Mac the message reads "Python 3 is not ready", and macOS may offer to install Apple's developer tools, which include Python: accept, wait for it to finish, and double-click again.
 - **Mac says the file cannot be opened, or is from an unidentified developer.** This happens if you downloaded the repo as a ZIP instead of cloning it. Right-click the file, choose Open, then Open again. You only need to do this once.
-- **Mac says you do not have permission.** In Terminal, run `chmod +x start/dashboard-mac.command` from the repo folder.
+- **Mac says you do not have permission.** In Terminal, run `chmod +x start/Open dashboard (Mac).command` from the repo folder.
 - **Windows shows "Windows protected your PC".** Click More info, then Run anyway.
 
 | Tab | What you see |
