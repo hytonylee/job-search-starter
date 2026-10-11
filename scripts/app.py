@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import mimetypes
+import re
 import secrets
 import sys
 import webbrowser
@@ -25,18 +26,16 @@ from urllib.parse import parse_qs, unquote, urlparse
 import archive
 import help as help_script
 import pipeline
-import re
 import resume
 import stories
 
 ROOT = Path(__file__).resolve().parent.parent
+EXAMPLE = ROOT / "example"  # a fictional candidate, shown read-only by the "See an example" button
 PAGE = ROOT / "ui" / "index.html"
-APPLICATIONS = ROOT / "applications"
 OUTPUT = ROOT / "output"
 READABLE = ("applications", "profile", "progress", "notes", "modes")  # folders the page may read .md from
 TOKEN = secrets.token_urlsafe(16)  # the page must send this back to change anything
 
-ROLES_FILE = ROOT / "profile" / "roles.md"
 ROLES_HEADER = """# Target Roles
 
 The job titles I am applying for, one per line. The first is my primary target.
@@ -53,6 +52,8 @@ PREP_DOCS = [
     ("LinkedIn text", "profile/linkedin-profile.md"),
 ]
 
+
+# ---------- reading: every function takes the data root, so the example can reuse it ----------
 
 def render_md(text):
     """Markdown to HTML: the resume subset plus tables."""
@@ -88,21 +89,151 @@ def render_md(text):
     return "\n".join(blocks)
 
 
-def safe_md(relative):
-    """Resolve a path the page asked for, or None if it is not an allowed .md file."""
-    path = (ROOT / relative).resolve()
-    allowed = any(ROOT / top in path.parents for top in READABLE)
+def read(root, relative):
+    path = root / relative
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def safe_md(root, relative):
+    """Resolve a path the page asked for, or None if it is not an allowed .md file under root."""
+    path = (root / relative).resolve()
+    allowed = any((root / top).resolve() in path.parents for top in READABLE)
     return path if allowed and path.suffix == ".md" and path.is_file() else None
 
 
-def target_roles():
+def company_folders(root):
+    return sorted(p for p in (root / "applications").glob("*") if p.is_dir() and not p.name.startswith("_"))
+
+
+def target_roles(root):
     """The roles listed in profile/roles.md, ignoring the placeholder line."""
-    if not ROLES_FILE.exists():
-        return []
-    lines = [line[2:].strip() for line in ROLES_FILE.read_text(encoding="utf-8").splitlines()
-             if line.startswith("- ")]
+    lines = [line[2:].strip() for line in read(root, "profile/roles.md").splitlines() if line.startswith("- ")]
     return [line for line in lines if line and not line.startswith("[")]
 
+
+def roles_tailored(root):
+    """True once the `roles` keyword has written at least one practice exercise."""
+    exercises = resume.clean_markdown(read(root, "modes/practice.md")).split("## Exercises")[-1]
+    return "###" in exercises
+
+
+def today_for(root):
+    """Today, or the fixed date in example/today.txt so the example's flags never go stale."""
+    fixed = pipeline.parse_date(read(root, "today.txt")) if root == EXAMPLE else None
+    return fixed or date.today()
+
+
+def pipeline_state(root):
+    try:
+        rows = pipeline.enrich(pipeline.read_rows(root / "applications" / "PIPELINE.md"), today_for(root))
+    except SystemExit as error:
+        return {"rows": [], "counts": [], "problems": [str(error)]}
+    keys = ("company", "role", "stage", "applied", "last contact", "next action", "due", "source", "flag", "closed")
+    return {"rows": [{k: r.get(k, "") for k in keys} for r in rows],
+            "counts": pipeline.stage_counts(rows),
+            "problems": pipeline.problems(rows)}
+
+
+def setup_checklist(root):
+    profile, rubric = read(root, "profile/profile.md"), read(root, "applications/SCREENING-RUBRIC.md")
+    header = profile.split("## Verified experience")[0]
+    master = read(root, "profile/resume.md")
+    return [
+        {"done": bool(target_roles(root)), "text": "Enter the roles you are applying for",
+         "hint": "Use the box above. Several roles are fine"},
+        {"done": (root / "profile" / "linkedin-export.pdf").exists() or root == EXAMPLE,
+         "text": "Save your LinkedIn profile as a PDF",
+         "hint": "On LinkedIn: your profile, Resources, Save to PDF. Put it in profile/ as linkedin-export.pdf"},
+        {"done": bool(master) and "Empty on purpose" not in master,
+         "text": "Create your resume from it", "hint": "Type setup in your AI tool"},
+        {"done": roles_tailored(root), "text": "Tailor the profile, practice and rubric to your roles",
+         "hint": "setup does this. If you change your roles later, type roles in your AI tool"},
+        {"done": bool(profile) and "[fill in]" not in header,
+         "text": "Fill in and audit your profile", "hint": "Type audit in your AI tool"},
+        {"done": bool(rubric) and "[amount]" not in rubric and "[fill in]" not in rubric,
+         "text": "Set your hard stops in the screening rubric",
+         "hint": "Edit applications/SCREENING-RUBRIC.md, or ask your AI tool to interview you for it"},
+        {"done": bool(pipeline_state(root)["rows"]),
+         "text": "Apply to your first posting", "hint": "Type apply: [company] in your AI tool and paste the posting"},
+    ]
+
+
+def practice_log(root):
+    """Rows of progress/practice-log.md as dicts, newest first."""
+    rows, header = [], None
+    for line in read(root, "progress/practice-log.md").splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        cells = pipeline.split_cells(line)
+        if header is None:
+            header = [c.lower() for c in cells]
+        elif not all(set(c) <= set("-: ") for c in cells) and cells[0]:
+            rows.append(dict(zip(header, cells)))
+    return sorted(rows, key=lambda r: r.get("date", ""), reverse=True)
+
+
+def stories_state(root):
+    items = stories.load_stories(root / "profile" / "stories")
+    for item in items:
+        item["html"] = render_md(read(root, f"profile/stories/{item['file']}"))
+    return {"items": items,
+            "coverage": [{"tag": tag, "question": question, "titles": titles}
+                         for tag, question, titles in stories.coverage(items)]}
+
+
+def fingerprint(root):
+    """Changes whenever a file the dashboard shows is added, removed or edited."""
+    files = [ROOT / "AGENTS.md", root / "profile" / "linkedin-export.pdf"]
+    for top in READABLE:
+        files += (root / top).rglob("*.md")
+    files += (OUTPUT / "resume").rglob("*.pdf")
+    digest = hashlib.sha1()
+    for path in sorted(files):
+        try:
+            info = path.stat()
+        except OSError:
+            continue
+        digest.update(f"{path.relative_to(ROOT).as_posix()}|{info.st_mtime_ns}|{info.st_size}\n".encode())
+    return digest.hexdigest()[:16]
+
+
+def state(root=ROOT):
+    example = root == EXAMPLE
+    versions = resume.role_versions(root / "profile" / "resumes")
+    apps = []
+    for folder in company_folders(root):
+        exported = [] if example else sorted((OUTPUT / "resume" / folder.name).glob("*.pdf"))
+        apps.append({"name": folder.name,
+                     "files": sorted(p.name for p in folder.glob("*.md")),
+                     "pdf": f"output/resume/{folder.name}/{exported[-1].name}" if exported else ""})
+    _, entries = archive.split_log(read(root, "progress/daily-log.md"))
+    entries.sort(key=lambda e: e[0], reverse=True)
+    questions = [{"company": f.name, "html": render_md(read(root, f"applications/{f.name}/interview-notes.md"))}
+                 for f in company_folders(root) if (f / "interview-notes.md").exists()]
+    return {
+        "version": fingerprint(root),
+        "example": example,
+        "as_of": today_for(root).isoformat(),
+        "has_example": EXAMPLE.is_dir(),
+        "roles": target_roles(root),
+        "versions": versions,
+        "setup": setup_checklist(root),
+        "pipeline": pipeline_state(root),
+        "applications": apps,
+        "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (root / path).exists()]
+                + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md"} for name in versions],
+        "questions": questions,
+        "stories": stories_state(root),
+        "practice": practice_log(root),
+        "log": [{"date": d.isoformat(), "html": render_md(body)} for d, body in entries[:7]],
+        "keywords": help_script.keywords(),
+        "scripts": [{"name": p.name, "summary": help_script.script_usage(p)[0],
+                     "commands": help_script.script_usage(p)[1]}
+                    for p in sorted((ROOT / "scripts").glob("*.py"))],
+    }
+
+
+# ---------- writing: always the user's own files, never the example ----------
 
 def save_roles(roles):
     """Write the role list. Returns the cleaned list, or raises ValueError."""
@@ -117,129 +248,10 @@ def save_roles(roles):
     if len(cleaned) > 8:
         raise ValueError("Keep it to 8 roles or fewer. A focused search works better.")
     body = "".join(f"- {role}\n" for role in cleaned) or "- [add a role, e.g. Frontend Engineer]\n"
-    ROLES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    ROLES_FILE.write_text(ROLES_HEADER + body, encoding="utf-8")
+    target = ROOT / "profile" / "roles.md"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(ROLES_HEADER + body, encoding="utf-8")
     return cleaned
-
-
-def roles_tailored():
-    """True once the `roles` keyword has written at least one practice exercise."""
-    exercises = resume.clean_markdown(read("modes/practice.md")).split("## Exercises")[-1]
-    return "###" in exercises
-
-
-def fingerprint():
-    """Changes whenever a file the dashboard shows is added, removed or edited."""
-    files = [ROOT / "AGENTS.md"]
-    for top in READABLE:
-        files += (ROOT / top).rglob("*.md")
-    files += (OUTPUT / "resume").rglob("*.pdf")
-    files.append(ROOT / "profile" / "linkedin-export.pdf")
-    digest = hashlib.sha1()
-    for path in sorted(files):
-        try:
-            info = path.stat()
-        except OSError:
-            continue
-        digest.update(f"{path.relative_to(ROOT).as_posix()}|{info.st_mtime_ns}|{info.st_size}\n".encode())
-    return digest.hexdigest()[:16]
-
-
-def stories_state():
-    items = stories.load_stories()
-    for item in items:
-        item["html"] = render_md(read(f"profile/stories/{item['file']}"))
-    return {"items": items,
-            "coverage": [{"tag": tag, "question": question, "titles": titles}
-                         for tag, question, titles in stories.coverage(items)]}
-
-
-def company_folders():
-    return sorted(p for p in APPLICATIONS.glob("*") if p.is_dir() and not p.name.startswith("_"))
-
-
-def read(relative):
-    path = ROOT / relative
-    return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def pipeline_state():
-    try:
-        rows = pipeline.enrich(pipeline.read_rows(pipeline.PIPELINE), date.today())
-    except SystemExit as error:
-        return {"rows": [], "counts": [], "problems": [str(error)]}
-    keys = ("company", "role", "stage", "applied", "last contact", "next action", "due", "source", "flag", "closed")
-    return {"rows": [{k: r.get(k, "") for k in keys} for r in rows],
-            "counts": pipeline.stage_counts(rows),
-            "problems": pipeline.problems(rows)}
-
-
-def setup_checklist():
-    profile, rubric = read("profile/profile.md"), read("applications/SCREENING-RUBRIC.md")
-    header = profile.split("## Verified experience")[0]
-    return [
-        {"done": bool(target_roles()), "text": "Enter the roles you are applying for",
-         "hint": "Use the box above. Several roles are fine"},
-        {"done": (ROOT / "profile" / "linkedin-export.pdf").exists(),
-         "text": "Save your LinkedIn profile as a PDF",
-         "hint": "On LinkedIn: your profile, Resources, Save to PDF. Put it in profile/ as linkedin-export.pdf"},
-        {"done": bool(read("profile/resume.md")) and "Empty on purpose" not in read("profile/resume.md"),
-         "text": "Create your resume from it", "hint": "Type setup in your AI tool"},
-        {"done": roles_tailored(), "text": "Tailor the profile, practice and rubric to your roles",
-         "hint": "setup does this. If you change your roles later, type roles in your AI tool"},
-        {"done": bool(profile) and "[fill in]" not in header,
-         "text": "Fill in and audit your profile", "hint": "Type audit in your AI tool"},
-        {"done": bool(rubric) and "[amount]" not in rubric and "[fill in]" not in rubric,
-         "text": "Set your hard stops in the screening rubric",
-         "hint": "Edit applications/SCREENING-RUBRIC.md, or ask your AI tool to interview you for it"},
-        {"done": bool(pipeline_state()["rows"]),
-         "text": "Apply to your first posting", "hint": "Type apply: [company] in your AI tool and paste the posting"},
-    ]
-
-
-def practice_log():
-    """Rows of progress/practice-log.md as dicts, newest first."""
-    rows, header = [], None
-    for line in read("progress/practice-log.md").splitlines():
-        if not line.strip().startswith("|"):
-            continue
-        cells = pipeline.split_cells(line)
-        if header is None:
-            header = [c.lower() for c in cells]
-        elif not all(set(c) <= set("-: ") for c in cells) and cells[0]:
-            rows.append(dict(zip(header, cells)))
-    return sorted(rows, key=lambda r: r.get("date", ""), reverse=True)
-
-
-def state():
-    apps = []
-    for folder in company_folders():
-        exported = sorted((OUTPUT / "resume" / folder.name).glob("*.pdf"))
-        apps.append({"name": folder.name,
-                     "files": sorted(p.name for p in folder.glob("*.md")),
-                     "pdf": f"output/resume/{folder.name}/{exported[-1].name}" if exported else ""})
-    _, entries = archive.split_log(read("progress/daily-log.md"))
-    entries.sort(key=lambda e: e[0], reverse=True)
-    questions = [{"company": f.name, "html": render_md(read(f"applications/{f.name}/interview-notes.md"))}
-                 for f in company_folders() if (f / "interview-notes.md").exists()]
-    return {
-        "version": fingerprint(),
-        "roles": target_roles(),
-        "versions": resume.role_versions(),
-        "setup": setup_checklist(),
-        "pipeline": pipeline_state(),
-        "applications": apps,
-        "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (ROOT / path).exists()]
-                + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md"} for name in resume.role_versions()],
-        "questions": questions,
-        "stories": stories_state(),
-        "practice": practice_log(),
-        "log": [{"date": d.isoformat(), "html": render_md(body)} for d, body in entries[:7]],
-        "keywords": help_script.keywords(),
-        "scripts": [{"name": p.name, "summary": help_script.script_usage(p)[0],
-                     "commands": help_script.script_usage(p)[1]}
-                    for p in sorted((ROOT / "scripts").glob("*.py"))],
-    }
 
 
 def do_action(path, body):
@@ -251,7 +263,7 @@ def do_action(path, body):
             return 400, {"error": str(error)}
     if path == "/api/export":
         company = body.get("company") or None
-        if company and company not in [f.name for f in company_folders()]:
+        if company and company not in [f.name for f in company_folders(ROOT)]:
             return 400, {"error": "Unknown company folder"}
         version = body.get("role") or None
         try:
@@ -297,16 +309,19 @@ class Handler(BaseHTTPRequestHandler):
         if not self.local_only():
             return
         url = urlparse(self.path)
+        query = parse_qs(url.query)
+        root = EXAMPLE if query.get("example") == ["1"] and EXAMPLE.is_dir() else ROOT
         if url.path == "/":
             self.send(200, PAGE.read_text(encoding="utf-8").replace("__TOKEN__", TOKEN), "text/html; charset=utf-8")
         elif url.path == "/api/state":
-            self.json(200, state())
+            self.json(200, state(root))
         elif url.path == "/api/version":
-            self.json(200, {"version": fingerprint()})
+            self.json(200, {"version": fingerprint(root)})
         elif url.path == "/api/file":
-            path = safe_md(parse_qs(url.query).get("path", [""])[0])
+            path = safe_md(root, query.get("path", [""])[0])
             if path:
-                self.json(200, {"path": path.relative_to(ROOT).as_posix(), "html": render_md(path.read_text(encoding="utf-8"))})
+                self.json(200, {"path": path.relative_to(root.resolve()).as_posix(),
+                                "html": render_md(path.read_text(encoding="utf-8"))})
             else:
                 self.json(404, {"error": "File not found"})
         elif url.path.startswith("/output/"):

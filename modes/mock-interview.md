@@ -1,6 +1,6 @@
 # Mode: mock interview
 
-Reads: `applications/[company]/posting.md` and `fit.md` for the company I name, `profile/profile.md`, the output of `python3 scripts/stories.py`.
+Reads: `applications/[company]/posting.md`, `fit.md` and `research.md` (if it exists) for the company I name, `profile/profile.md`, the output of `python3 scripts/stories.py`.
 
 Run a full round as that company's interviewer:
 
@@ -8,6 +8,7 @@ Run a full round as that company's interviewer:
 2. Three technical questions drawn from the posting's required items, weighted toward the ones `fit.md` marks unmet.
 3. One practice exercise for the role this company is hiring (see `modes/practice.md`).
 4. "Walk me through the hardest problem you handled in your last role."
+5. "Why do you want to work here?" and "What questions do you have for us?" If there is no `research.md`, tell me afterwards to run `research: [company]`.
 
 Stay in character until I say **stop**. Do not coach mid-round.
 

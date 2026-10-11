@@ -87,10 +87,11 @@ def parse_story(path):
     }
 
 
-def load_stories():
-    if not STORIES.exists():
+def load_stories(folder=None):
+    folder = folder or STORIES
+    if not folder.exists():
         return []
-    return [parse_story(p) for p in sorted(STORIES.glob("*.md")) if p.name != "README.md"]
+    return [parse_story(p) for p in sorted(folder.glob("*.md")) if p.name != "README.md"]
 
 
 def coverage(stories):

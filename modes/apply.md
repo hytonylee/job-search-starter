@@ -9,7 +9,7 @@ Reads: `applications/SCREENING-RUBRIC.md`, `profile/roles.md`, `profile/profile.
 5. Draft `applications/[company]/resume.md`. Start from `profile/resumes/[matched role].md` if it exists, otherwise from `profile/resume.md`. Tailor by reordering and rewording verified items only. Never add a skill that is not in `profile/profile.md`.
 6. Draft `applications/[company]/cover-note.md` only if the posting asks for one. Under 150 words, written for this company and this role, never reused from another application.
 7. When I approve the tailored resume, run `python3 scripts/resume.py [company]` and give me the PDF path.
-8. Add a row to `applications/PIPELINE.md` as **Drafted**. Change it to **Applied** only when I say I submitted.
+8. Add a row to `applications/PIPELINE.md` as **Drafted**. If the application moves to an interview, remind me to run `research: [company]` first. Change it to **Applied** only when I say I submitted.
 9. Add each unmet required item to `progress/weak-spots.md`, or raise its count if it is already there.
 
 Company folder layout is described in `applications/_example-company/README.md`.

@@ -50,6 +50,7 @@
   .check li.done .mark { color:var(--ok); } .check li.done .text { color:var(--muted); }
   .notice { padding:10px 14px; border-radius:8px; background:var(--warn-bg); color:var(--warn); margin:10px 0; }
   .notice.ok { background:var(--ok-bg); color:var(--ok); }
+  #banner { max-width:1100px; margin:0 auto; padding:0 16px; } #banner .notice { margin:14px 0 0; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .split { display:grid; grid-template-columns:220px 1fr; gap:16px; align-items:start; }
   @media (max-width: 720px) { .split { grid-template-columns:1fr; } }
   .list { display:flex; flex-direction:column; gap:4px; }
@@ -71,9 +72,11 @@
   <span class="pill closed" id="role-badge">loading</span>
   <span class="spacer"></span>
   <span class="muted small" id="sync" aria-live="polite"></span>
+  <button class="btn" id="example-toggle" hidden>See an example</button>
   <button class="btn" id="refresh">Refresh</button>
 </header>
 <nav role="tablist" aria-label="Sections" id="nav"></nav>
+<div id="banner"></div>
 <main id="main"><p class="muted">Loading…</p></main>
 
 <script>
@@ -81,7 +84,7 @@ const TOKEN = "__TOKEN__";
 const TABS = [["start", "Start"], ["pipeline", "Pipeline"], ["applications", "Applications"],
               ["prep", "Prep"], ["progress", "Progress"], ["tools", "Tools"]];
 let S = null;                      // server state
-let ui = { tab: location.hash.slice(1) || "start", company: null, file: null, doc: null, hideClosed: false };
+let ui = { tab: location.hash.slice(1) || "start", company: null, file: null, doc: null, hideClosed: false, example: false };
 
 function el(tag, props = {}, ...kids) {
   const node = document.createElement(tag);
@@ -99,7 +102,12 @@ function el(tag, props = {}, ...kids) {
   return node;
 }
 
+// In example mode every read asks for the fictional candidate, and nothing can be changed.
+function withMode(path) { return ui.example ? path + (path.includes("?") ? "&" : "?") + "example=1" : path; }
+
 async function api(path, body) {
+  if (body && ui.example) throw new Error("Not available while viewing the example. Go back to your data first.");
+  path = withMode(path);
   const options = body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Token": TOKEN }, body: JSON.stringify(body) } : {};
   const response = await fetch(path, options);
   const data = await response.json();
@@ -168,8 +176,11 @@ function viewStart() {
     el("pre", { id: "prompt-text", tabindex: "0" }, prompt),
     el("div", { class: "row", style: "margin:10px 0 0" }, copyButton(prompt))) : null;
   return [
-    el("h2", {}, onboarded ? "Start today's session" : "Start here"),
-    el("div", { class: "card" },
+    ui.example ? el("div", { class: "card" },
+      el("p", {}, "This is Sam Rivera, a fictional product manager about seven weeks into a search. Look through the tabs to see what a working project holds: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores."),
+      el("p", { class: "muted small" }, "Nothing here can be changed, and none of it is mixed with your own files.")) : null,
+    ui.example ? null : el("h2", {}, onboarded ? "Start today's session" : "Start here"),
+    ui.example ? null : el("div", { class: "card" },
       el("p", {}, onboarded
         ? "You are set up. Get the prompt that starts today's check-in in your AI tool."
         : "Setup is a short interview in your AI tool. This button writes the first message for you. The AI then asks you a series of questions and sets the project up step by step: your roles, your resume, the basics, an audit of your claims, and your first application. You can stop and pick it up later."),
@@ -181,10 +192,10 @@ function viewStart() {
       el("p", { class: "muted" }, "Optional. Type the job titles in your own words, as many as you are really targeting; the first is your primary. If you skip this, the onboarding conversation asks you instead. Your AI tool uses them to shape your profile, practice exercises and screening rubric, and you can keep a resume version for each."),
       draftRoles.length
         ? el("div", { class: "row" }, draftRoles.map((r, i) => el("span", { class: "pill" + (i ? " closed" : "") }, r, " ",
-            el("button", { "aria-label": "Remove " + r, style: "border:0; background:none; color:inherit; cursor:pointer; font:inherit; padding:0 0 0 4px",
+            ui.example ? null : el("button", { "aria-label": "Remove " + r, style: "border:0; background:none; color:inherit; cursor:pointer; font:inherit; padding:0 0 0 4px",
               onclick: () => { draftRoles.splice(i, 1); render(); } }, "×"))))
         : el("p", { class: "muted small" }, "No roles yet."),
-      el("div", { class: "row" }, input, el("button", { class: "btn", onclick: add }, "Add"),
+      ui.example ? null : el("div", { class: "row" }, input, el("button", { class: "btn", onclick: add }, "Add"),
         el("button", { class: "btn primary", disabled: !changed, onclick: save }, "Save roles")),
       changed ? el("p", { class: "muted small" }, "You have unsaved changes.") : null,
       message, el("div", { id: "role-msg" })),
@@ -270,7 +281,7 @@ function viewApplications() {
         row && row.flag ? el("span", { class: "pill warn" }, row.flag) : null),
       row ? el("p", { class: "muted" }, [row.role, row["next action"] && "Next: " + row["next action"], row.due && "due " + row.due].filter(Boolean).join(" · ")) : null,
       el("div", { class: "row" },
-        app.files.includes("resume.md") ? el("button", { class: "btn", onclick: e => exportResume(e.target) }, "Export resume to PDF") : null,
+        app.files.includes("resume.md") ? el("button", { class: "btn", disabled: ui.example, onclick: e => exportResume(e.target) }, "Export resume to PDF") : null,
         app.pdf ? el("a", { href: "/" + app.pdf, target: "_blank" }, "Open last exported PDF") : null),
       result,
       app.files.length ? el("div", { class: "tabs" }, app.files.map(f =>
@@ -370,11 +381,11 @@ function viewTools() {
   }
   return [
     el("h2", {}, "Export a resume"),
-    el("div", { class: "card" }, el("div", { class: "row" }, source, paper, el("button", { class: "btn primary", onclick: exportBase }, "Export to PDF")),
+    el("div", { class: "card" }, el("div", { class: "row" }, source, paper, el("button", { class: "btn primary", disabled: ui.example, onclick: exportBase }, "Export to PDF")),
       el("p", { class: "muted small" }, "The master resume or a role version. Resumes tailored to one company are exported from the Applications tab."), exportResult),
     el("h2", {}, "Archive old entries"),
     el("div", { class: "card" }, el("div", { class: "row" }, "Keep the last", days, "days",
-        el("button", { class: "btn primary", onclick: () => runArchive(false) }, "Preview"), applyButton),
+        el("button", { class: "btn primary", disabled: ui.example, onclick: () => runArchive(false) }, "Preview"), applyButton),
       el("p", { class: "muted small" }, "Moves older daily-log entries and closed applications into _archive folders. Preview first."), archiveResult),
     el("h2", {}, "Keywords for your AI tool"),
     el("div", { class: "card" }, el("div", { class: "kwlist" }, S.keywords.map(([keyword, about]) => [
@@ -392,10 +403,24 @@ function render() {
   document.querySelector("#nav").replaceChildren(...TABS.map(([id, label]) =>
     el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; ui.previewOpen = false; history.replaceState(null, "", "#" + id); render(); } }, label)));
   document.querySelector("#role-badge").textContent = S.roles.length ? S.roles.join(" · ") : "No roles yet";
+  const toggle = document.querySelector("#example-toggle");
+  toggle.hidden = !S.has_example;
+  toggle.textContent = ui.example ? "Back to my data" : "See an example";
+  document.querySelector("#banner").replaceChildren(...(ui.example ? [el("div", { class: "notice", role: "status" },
+    el("b", {}, "Example data."), " A fictional candidate, shown as of " + S.as_of + ". Read-only.",
+    el("button", { class: "btn", onclick: toggleExample }, "Back to my data"))] : []));
   document.querySelector("#main").replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
 }
 
-function rolesDirty() { return !!(draftRoles && S && JSON.stringify(draftRoles) !== JSON.stringify(S.roles)); }
+async function toggleExample() {
+  ui.example = !ui.example;
+  Object.assign(ui, { company: null, file: null, doc: null, showPrompt: false, previewOpen: false });
+  draftRoles = null; docCache.clear(); S = null;
+  await load();
+  window.scrollTo(0, 0);
+}
+
+function rolesDirty() { return !!(!ui.example && draftRoles && S && JSON.stringify(draftRoles) !== JSON.stringify(S.roles)); }
 
 async function load() {
   try {
@@ -431,7 +456,7 @@ async function checkForChanges() {
   if (document.hidden || checking) return;
   checking = true;
   try {
-    const response = await fetch("/api/version");
+    const response = await fetch(withMode("/api/version"));
     const { version } = await response.json();
     if (!S) await load();                                   // reconnect after the dashboard was restarted
     else if (version !== S.version) {
@@ -447,6 +472,7 @@ document.addEventListener("visibilitychange", checkForChanges);
 window.addEventListener("focus", checkForChanges);
 
 document.querySelector("#refresh").addEventListener("click", load);
+document.querySelector("#example-toggle").addEventListener("click", toggleExample);
 load();
 </script>
 </body>

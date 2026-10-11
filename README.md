@@ -33,6 +33,7 @@ roles/               example patterns the AI adapts to your roles (devops, front
 scripts/             dashboard, pipeline viewer, resume export, story coverage, archiving, help
 ui/                  the dashboard page
 start/               double-click launchers for the dashboard (Mac and Windows)
+example/             a fictional candidate for the dashboard's "See an example" view
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
@@ -81,6 +82,8 @@ If the launcher does not start:
 | **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
 
+**See an example.** A new project is empty, so the dashboard has a **See an example** button. It switches every tab to a fictional candidate, Sam Rivera, seven weeks into a product management search: a pipeline with follow-ups due, tailored applications, company research, STAR stories and practice scores. It is read-only and kept in its own `example/` folder, so it never mixes with your files and your AI tool never reads it. Press **Back to my data** to return. You can delete the folder, and the button goes with it.
+
 The page reads your files and shows them. The coaching itself still happens in your AI tool: you type a keyword there, it updates the files, and the page picks up the change within a few seconds, or as soon as you switch back to it. It holds off while you are typing, have unsaved roles, or have an archive preview open, and says so next to the **Refresh** button. To change a document, edit the file or ask the AI.
 
 ## Your target roles
@@ -94,6 +97,12 @@ So there is no list to pick from. You type your roles in your own words, on the 
 - **`apply`** says which of your roles a posting matches and starts from that role's resume version. Cover notes are written per company and never reused.
 
 The `roles/` folder holds example patterns for six kinds of job (devops, frontend, backend, product, design, data). The AI uses the closest one as a starting point and adapts it, so a "product engineer" gets something between the frontend and product patterns rather than a copy of either. To improve the starting point for a kind of role, edit its folder or add one.
+
+## Company research
+
+`research: [company]` has your AI tool look the company up on the web and write `applications/<company>/research.md`: what they do, size and stage, recent news, how they work, the reported interview process, links to your own experience, questions to ask, red flags, and what it could not find. It appears on the dashboard in that company's folder.
+
+Every fact carries a source and the date it was read, and anything not found is written as "not found" rather than guessed. Research on the people you will meet is limited to their public professional background. The tool needs web access for this: Claude Code and Cursor have it, and Codex may need web search enabled in its settings.
 
 ## Interview stories
 
@@ -206,6 +215,8 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **The Windows launcher is untested.** It was written and checked on a Mac. If it fails, run `py -3 scripts\app.py` in a Command Prompt from the repo folder and report what it prints.
 - **The dashboard is for reading.** Apart from the role list, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
 - **The dashboard and role tailoring are new.** The page logic was tested with sample data but has had little real use. The role-specific material is written by your AI tool from the example patterns in `roles/`, which come from general knowledge of those interviews rather than a real search in each role. Read what it produces and correct it.
+- **Research is only as good as the web search.** The AI can still misread a page or pick up an outdated one. Open the sources for anything you plan to say in an interview. Small private companies often have little public information.
+- **The example is one persona.** It shows a product manager's search. The shape carries over to other roles; the details do not.
 - **Story checks are mechanical.** The script counts words, numbers and "we" against "I". It cannot tell whether a story is true, interesting or right for the question. The twelve questions are a common set, not a complete one.
 - **Several roles means more upkeep.** Each role version of your resume has to be rebuilt when the master changes, and nothing does that for you.
 - **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.
@@ -218,7 +229,6 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
 - **Native commands per tool.** Slash commands for Cursor and Codex that wrap each mode, so the right file is always loaded.
 - **More modes.** Offer review and negotiation, networking and referral tracking, recruiter reply drafting, a weekly review.
-- **A worked example.** A fictional candidate carried through the whole loop, so a new user can see what filled-in files look like.
 - **Tested notes per tool.** What actually happens in Codex and Cursor, once someone has run it there.
 
 If you improve it, a pull request to the template is welcome. Keep your personal files out of it.

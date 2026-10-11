@@ -15,6 +15,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `roles` | `modes/roles.md` | Tailor profile, practice and rubric to my target roles |
 | `audit` | `modes/audit.md` | Evidence check on every resume line |
 | `apply: [company]` | `modes/apply.md` | Screen, fit, tailor, track |
+| `research: [company]` | `modes/research.md` | Look the company up on the web, with sources |
 | `check in` | `modes/check-in.md` | Daily standup and plan |
 | `pipeline` | `modes/pipeline.md` | Show every application and its status |
 | `gaps` | `modes/gaps.md` | Re-rank gaps by evidence |
@@ -41,7 +42,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `profile/linkedin-profile.md` | Text currently live on LinkedIn |
 | `applications/PIPELINE.md` | Every application and its next action |
 | `applications/SCREENING-RUBRIC.md` | Apply or skip criteria |
-| `applications/[company]/` | Posting, fit, tailored resume, interview notes |
+| `applications/[company]/` | Posting, fit, tailored resume, research, interview notes |
 | `progress/weak-spots.md` | Gaps with evidence, ranked |
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `progress/practice-log.md` | One row per drill, practice or mock interview, with the score |
@@ -49,6 +50,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `stories.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
 | `roles/` | Example patterns per kind of role. Read only in the `roles` mode |
 | `ui/`, `start/` | The dashboard page and its launchers. Do not read |
+| `example/` | A fictional candidate for the dashboard's example view. Never read it, and never treat it as mine |
 | `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |
 | `output/` | Generated views only. Never edit by hand, never store source data here |
 

@@ -204,9 +204,9 @@ def show(path):
         return str(path)
 
 
-def role_versions():
+def role_versions(folder=None):
     """Names of the per-role resume versions in profile/resumes/."""
-    return sorted(p.stem for p in ROLE_RESUMES.glob("*.md") if p.name != "README.md")
+    return sorted(p.stem for p in (folder or ROLE_RESUMES).glob("*.md") if p.name != "README.md")
 
 
 def export_resume(company=None, paper="letter", file=None, role=None):
