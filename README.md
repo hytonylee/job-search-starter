@@ -24,13 +24,13 @@ Everything serves one loop:
 ```
 AGENTS.md            the index the AI reads every session
 README.md            this file
-profile/             who you are: target roles, profile, master resume, a resume version per role, LinkedIn text
+profile/             who you are: target roles, profile, master resume, a resume version per role, interview stories, LinkedIn text
 modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
 progress/            daily log and the ranked gap list
 notes/               long-term memory, one fact per file
 roles/               example patterns the AI adapts to your roles (devops, frontend, backend, product, design, data)
-scripts/             dashboard, pipeline viewer, resume export, archiving, help
+scripts/             dashboard, pipeline viewer, resume export, story coverage, archiving, help
 ui/                  the dashboard page
 start/               double-click launchers for the dashboard (Mac and Windows)
 output/              generated files: pipeline page, exported resumes (not committed)
@@ -77,7 +77,7 @@ If the launcher does not start:
 | **Start** | The onboarding button, your target roles, and a setup checklist that ticks itself off |
 | **Pipeline** | Counts per stage, what needs attention, every application |
 | **Applications** | One company at a time: the posting, your fit, the tailored resume, interview notes, and a PDF export button |
-| **Prep** | Your profile, master resume and role versions, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview |
+| **Prep** | Your profile, master resume and role versions, interview stories with their coverage, gap list, practice exercises and every interview question you have logged, formatted for reading before an interview |
 | **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
 | **Tools** | Export of the master resume or a role version, archiving with a preview, and every keyword with a copy button |
 
@@ -94,6 +94,17 @@ So there is no list to pick from. You type your roles in your own words, on the 
 - **`apply`** says which of your roles a posting matches and starts from that role's resume version. Cover notes are written per company and never reused.
 
 The `roles/` folder holds example patterns for six kinds of job (devops, frontend, backend, product, design, data). The AI uses the closest one as a starting point and adapts it, so a "product engineer" gets something between the frontend and product patterns rather than a copy of either. To improve the starting point for a kind of role, edit its folder or add one.
+
+## Interview stories
+
+Behavioural questions ("tell me about a time you...") are answered with stories, and the project keeps a bank of them in STAR form: **S**ituation, **T**ask, **A**ction, **R**esult.
+
+- **`story`** builds one by asking you the questions, one part at a time, and saves it to `profile/stories/`. `story: [title]` practises an existing one: you tell it from memory and it shows what you skipped.
+- **`stories`** shows coverage: which of twelve common questions (conflict, failure, ownership, ambiguity, influence, leadership, pressure, feedback, prioritisation, stakeholder, learning, achievement) have a story and which do not. The same list runs in a terminal with `python3 scripts/stories.py`.
+- **`mock interview`** asks behavioural questions and checks your answer against the saved story. **`debrief`** records which story you used in a real interview and how it landed.
+- The dashboard's **Prep** tab shows every story with its coverage table, for reading the night before.
+
+Stories are stored as short notes to speak from, not scripts to memorise, because a recited answer falls apart on the first follow-up. The script flags a story that is missing a part, runs over about two and a half minutes, has a result with no number, says "we" more than "I" in the Action, or has never been practised.
 
 ## First session, 60 to 90 minutes
 
@@ -195,6 +206,7 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **The Windows launcher is untested.** It was written and checked on a Mac. If it fails, run `py -3 scripts\app.py` in a Command Prompt from the repo folder and report what it prints.
 - **The dashboard is for reading.** Apart from the role list, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
 - **The dashboard and role tailoring are new.** The page logic was tested with sample data but has had little real use. The role-specific material is written by your AI tool from the example patterns in `roles/`, which come from general knowledge of those interviews rather than a real search in each role. Read what it produces and correct it.
+- **Story checks are mechanical.** The script counts words, numbers and "we" against "I". It cannot tell whether a story is true, interesting or right for the question. The twelve questions are a common set, not a complete one.
 - **Several roles means more upkeep.** Each role version of your resume has to be rebuilt when the master changes, and nothing does that for you.
 - **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.
 

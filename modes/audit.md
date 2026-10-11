@@ -23,3 +23,4 @@ Then keep it, rewrite it to what I can defend, or cut it.
 - Updated `profile/resume.md`.
 - `profile/profile.md` filled in: the verified table, exposure list, claims never to inflate, strongest evidence.
 - A short list of what was cut and why.
+- For each item under "Strongest evidence", a one-line suggestion of the interview story it could become (`story`).

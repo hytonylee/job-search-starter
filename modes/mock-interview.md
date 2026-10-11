@@ -1,10 +1,10 @@
 # Mode: mock interview
 
-Reads: `applications/[company]/posting.md` and `fit.md` for the company I name, `profile/profile.md`.
+Reads: `applications/[company]/posting.md` and `fit.md` for the company I name, `profile/profile.md`, the output of `python3 scripts/stories.py`.
 
 Run a full round as that company's interviewer:
 
-1. Two behavioural questions.
+1. Two behavioural questions, phrased the way a real interviewer would. Pick one I have a story for and one I do not.
 2. Three technical questions drawn from the posting's required items, weighted toward the ones `fit.md` marks unmet.
 3. One practice exercise for the role this company is hiring (see `modes/practice.md`).
 4. "Walk me through the hardest problem you handled in your last role."
@@ -16,6 +16,7 @@ Stay in character until I say **stop**. Do not coach mid-round.
 - Score each answer 1 to 5 with one line on what was missing.
 - Flag any answer over two minutes and any answer that did not address the question asked.
 - Flag any claim that goes beyond `profile/profile.md`.
+- For each behavioural answer, open the matching file in `profile/stories/` and say which of Situation, Task, Action and Result I skipped, and any fact that differed from the file. If I had no story for the question, say so and suggest `story`.
 - Add repeated weak points to `progress/weak-spots.md`.
 
 ## Log it

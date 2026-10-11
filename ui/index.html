@@ -278,13 +278,36 @@ function viewApplications() {
       file ? docPane(`applications/${app.name}/${file}`) : null))];
 }
 
+/* ---------- Stories (inside Prep) ---------- */
+function storiesPane() {
+  const { items, coverage } = S.stories;
+  const missing = coverage.filter(c => !c.titles.length);
+  return el("div", {},
+    el("p", { class: "muted" }, "Your interview stories in STAR form: Situation, Task, Action, Result. Read them here; practise by saying them aloud. Build one with ",
+      el("span", { class: "kw" }, "story"), " in your AI tool."),
+    el("h3", {}, `Questions covered: ${coverage.length - missing.length} of ${coverage.length}`),
+    table(["Question", "Your story"], coverage.map(c => [
+      el("span", {}, c.question, " ", el("span", { class: "muted small" }, "(" + c.tag + ")")),
+      c.titles.length ? c.titles.join(", ") : el("span", { class: "pill warn" }, "no story yet")])),
+    items.length ? items.map(story => el("div", { class: "doc", style: "margin-bottom:12px" },
+        el("div", { class: "row" },
+          story.competencies.map(tag => el("span", { class: "pill" }, tag)),
+          el("span", { class: "pill closed" }, story.minutes + " min spoken"),
+          story.practised ? el("span", { class: "pill closed" }, "practised " + story.practised) : null,
+          story.flags.map(flag => el("span", { class: "pill warn" }, flag))),
+        el("div", { html: story.html })))
+      : el("div", { class: "card muted" }, "No stories yet."));
+}
+
 /* ---------- Prep ---------- */
 function viewPrep() {
-  const docs = S.prep.concat(S.questions.length ? [{ title: "Questions I was asked", path: "#questions" }] : []);
+  const docs = S.prep.concat([{ title: `Stories (${S.stories.items.length})`, path: "#stories" }],
+    S.questions.length ? [{ title: "Questions I was asked", path: "#questions" }] : []);
   const current = docs.find(d => d.path === ui.doc) || docs[0];
   if (!current) return [el("div", { class: "card" }, "Nothing to read yet.")];
   const body = current.path === "#questions"
     ? el("div", { class: "doc" }, S.questions.map(q => [el("h1", {}, q.company), el("div", { html: q.html })]))
+    : current.path === "#stories" ? storiesPane()
     : docPane(current.path);
   return [el("p", { class: "muted" }, "Your own material, to read before an interview. To change any of it, edit the file or ask your AI tool."),
     el("div", { class: "split" },
@@ -304,13 +327,14 @@ function viewProgress() {
       el("div", { class: "stat" }, el("b", {}, rows.filter(r => r.stage !== "Drafted").length), el("span", {}, "Applied")),
       el("div", { class: "stat" }, el("b", {}, reached(["Screen", "Technical", "Final", "Offer"])), el("span", {}, "In interviews")),
       el("div", { class: "stat" }, el("b", {}, reached(["Offer"])), el("span", {}, "Offers")),
+      el("div", { class: "stat" }, el("b", {}, S.stories.coverage.filter(c => c.titles.length).length + "/" + S.stories.coverage.length), el("span", {}, "Questions with a story")),
       el("div", { class: "stat" }, el("b", {}, practice.length), el("span", {}, "Practice sessions")),
       el("div", { class: "stat" }, el("b", {}, average(scores.slice(0, 5))), el("span", {}, "Avg score, last 5")),
       el("div", { class: "stat" }, el("b", {}, average(scores)), el("span", {}, "Avg score, all"))),
     el("h2", {}, "Practice sessions"),
     practice.length
       ? table(["Date", "Mode", "Topic", "Score", "Weakest point"], practice.map(p => [p.date, p.mode, p.topic, p.score, p["weakest point"]]))
-      : el("div", { class: "card muted" }, "None logged yet. Each ", el("span", { class: "kw" }, "drill"), ", ", el("span", { class: "kw" }, "practice"), " and ", el("span", { class: "kw" }, "mock interview"), " adds a line here."),
+      : el("div", { class: "card muted" }, "None logged yet. Each ", el("span", { class: "kw" }, "drill"), ", ", el("span", { class: "kw" }, "practice"), ", story practice and ", el("span", { class: "kw" }, "mock interview"), " adds a line here."),
     el("h2", {}, "Recent sessions"),
     S.log.length ? S.log.map(entry => el("div", { class: "doc", style: "margin-bottom:10px", html: entry.html }))
                  : el("div", { class: "card muted" }, "No daily-log entries yet. Your AI tool writes one at the end of each session.")

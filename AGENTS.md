@@ -20,6 +20,8 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `gaps` | `modes/gaps.md` | Re-rank gaps by evidence |
 | `drill: [topic]` | `modes/drill.md` | 5 scored questions |
 | `practice` | `modes/practice.md` | The live exercise for one of my target roles |
+| `story` | `modes/story.md` | Build or practise one STAR interview story |
+| `stories` | `modes/stories.md` | Which interview questions have a story, and which do not |
 | `mock interview` | `modes/mock-interview.md` | Full round for a pipeline company |
 | `debrief: [company]` | `modes/debrief.md` | Log a real interview |
 | `linkedin sync` | `modes/linkedin-sync.md` | Push resume changes to the profile |
@@ -35,6 +37,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `profile/roles.md` | The job titles I am targeting, primary first |
 | `profile/resume.md` | Master resume, source of truth |
 | `profile/resumes/` | One resume version per target role, built from the master |
+| `profile/stories/` | One STAR interview story per file. Use `scripts/stories.py` for the overview |
 | `profile/linkedin-profile.md` | Text currently live on LinkedIn |
 | `applications/PIPELINE.md` | Every application and its next action |
 | `applications/SCREENING-RUBRIC.md` | Apply or skip criteria |
@@ -43,7 +46,7 @@ When I type a keyword, read its file in `modes/` and follow it. Each file names 
 | `progress/daily-log.md` | One entry per session, newest on top |
 | `progress/practice-log.md` | One row per drill, practice or mock interview, with the score |
 | `notes/INDEX.md` | One line per saved note. Read the index, open a note only if relevant |
-| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
+| `scripts/` | `app.py` (dashboard), `pipeline.py`, `resume.py`, `stories.py`, `archive.py`, `help.py`. Prefer running these over reading the files they cover |
 | `roles/` | Example patterns per kind of role. Read only in the `roles` mode |
 | `ui/`, `start/` | The dashboard page and its launchers. Do not read |
 | `_archive/` folders | Old log entries and closed applications. Do not read unless I ask |

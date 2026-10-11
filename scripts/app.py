@@ -27,6 +27,7 @@ import help as help_script
 import pipeline
 import re
 import resume
+import stories
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "ui" / "index.html"
@@ -144,6 +145,15 @@ def fingerprint():
     return digest.hexdigest()[:16]
 
 
+def stories_state():
+    items = stories.load_stories()
+    for item in items:
+        item["html"] = render_md(read(f"profile/stories/{item['file']}"))
+    return {"items": items,
+            "coverage": [{"tag": tag, "question": question, "titles": titles}
+                         for tag, question, titles in stories.coverage(items)]}
+
+
 def company_folders():
     return sorted(p for p in APPLICATIONS.glob("*") if p.is_dir() and not p.name.startswith("_"))
 
@@ -222,6 +232,7 @@ def state():
         "prep": [{"title": title, "path": path} for title, path in PREP_DOCS if (ROOT / path).exists()]
                 + [{"title": f"Resume: {name}", "path": f"profile/resumes/{name}.md"} for name in resume.role_versions()],
         "questions": questions,
+        "stories": stories_state(),
         "practice": practice_log(),
         "log": [{"date": d.isoformat(), "html": render_md(body)} for d, body in entries[:7]],
         "keywords": help_script.keywords(),
