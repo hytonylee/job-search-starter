@@ -1,3 +1,4 @@
+<!-- role: devops | DevOps, Platform, SRE -->
 # Profile
 
 Filled in during `setup` and `audit`. Until then, treat every claim in `profile/resume.md` as unverified.
@@ -9,10 +10,10 @@ Filled in during `setup` and `audit`. Until then, treat every claim in `profile/
 
 ## Verified experience (only what survived the audit)
 
-| Area | Tool | Hands-on, in production | Last used | Evidence I can talk through |
+| Area | Tool or method | Hands-on (how long) | Last used | Evidence I can talk through |
 |---|---|---|---|---|
-| Cloud | [AWS / GCP / Azure] | [years] | [date] | [a specific system] |
-| IaC | [Terraform / Pulumi / CloudFormation] | | | |
+| Cloud | [AWS / GCP / Azure] | | | |
+| Infrastructure as code | [Terraform / Pulumi / CloudFormation] | | | |
 | Containers | [Docker / Kubernetes / ECS] | | | |
 | CI/CD | [GitHub Actions / GitLab CI / Jenkins] | | | |
 | Observability | [Prometheus / Grafana / Datadog] | | | |

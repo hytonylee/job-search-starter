@@ -9,16 +9,16 @@ A gap is listed here only with evidence: a posting I applied to, or a question I
 | | | | | | |
 
 <!-- Example row:
-| 1 | Kubernetes networking (Services, Ingress, NetworkPolicy) | Acme posting, Globex screen Q3, Initech posting | 3 | Stand up kind cluster, expose an app three ways, break and fix DNS | In progress |
+| 1 | [a skill three postings required] | Acme posting, Globex screen Q3, Initech posting | 3 | [one hands-on rep] | In progress |
 -->
 
-A rep is done when I can do it again from an empty directory with no AI and explain each step out loud.
+A rep is done when I can do it again from nothing, with no AI, and explain each step out loud.
 
 ## How I fail in interviews
 
 Patterns from `debrief`, not single bad answers.
 
-- [e.g. I say "I'd check the logs" without naming which logs or what I am looking for]
+- [e.g. I answer with a category ("I'd look into it") instead of saying exactly what I would do]
 
 ## False gaps (do not study)
 

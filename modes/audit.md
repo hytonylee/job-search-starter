@@ -5,9 +5,9 @@ Reads: `profile/resume.md`, `profile/profile.md`.
 Go through `profile/resume.md` one line at a time. One line per turn, do not batch. For each line ask:
 
 - What did I personally do, as opposed to my team?
-- At what scale (nodes, services, deploys per day, users, spend)?
-- What is the source for any number: a dashboard, a ticket, a postmortem, a bill?
-- Could I explain it for five minutes to an engineer who ran the same tool?
+- At what scale (users, systems, revenue, team size, spend)?
+- What is the source for any number: a dashboard, a report, a ticket, a bill?
+- Could I explain it for five minutes to someone who does the same job?
 
 Then keep it, rewrite it to what I can defend, or cut it.
 

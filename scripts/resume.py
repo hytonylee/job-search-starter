@@ -178,6 +178,10 @@ def make_pdf(html_path, pdf_path):
     return f"{Path(browser).name} ran but produced no file"
 
 
+class ExportError(Exception):
+    """A problem the user can fix, such as a missing or placeholder resume."""
+
+
 def pick_source(company):
     if not company:
         return BASE
@@ -187,7 +191,7 @@ def pick_source(company):
     available = sorted(p.parent.name for p in APPLICATIONS.glob("*/resume.md"))
     hint = "Folders with a resume: " + ", ".join(available) if available else \
         "No company folder has a resume.md yet. Create one with:  apply: [company]"
-    sys.exit(f"No tailored resume at {source.relative_to(ROOT)}\n{hint}")
+    raise ExportError(f"No tailored resume at {source.relative_to(ROOT)}\n{hint}")
 
 
 def show(path):
@@ -195,6 +199,34 @@ def show(path):
         return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
+
+
+def export_resume(company=None, paper="letter", file=None):
+    """Write the .md, .html and .pdf. Returns their paths and any PDF failure reason."""
+    source = file or pick_source(company)
+    if not source.exists():
+        raise ExportError(f"Resume not found: {show(source)}")
+    raw = source.read_text(encoding="utf-8")
+    if "Empty on purpose" in raw:
+        raise ExportError(f"{show(source)} is still the placeholder. Run `setup` first.")
+
+    markdown = clean_markdown(raw)
+    title = re.search(r"^#\s+(.+)$", markdown, flags=re.M)
+    name = re.sub(r"[^A-Za-z0-9]+", "-", title.group(1)).strip("-") if title else ""
+    stem = f"{name}-Resume" if name and name.lower() != "resume" else "Resume"
+
+    folder = OUTPUT / (company or "general")
+    folder.mkdir(parents=True, exist_ok=True)
+    md_path, html_path, pdf_path = (folder / f"{stem}{ext}" for ext in (".md", ".html", ".pdf"))
+
+    md_path.write_text(markdown, encoding="utf-8")
+    page = (PAGE.replace("__PAPER__", "A4" if paper == "a4" else "Letter")
+                .replace("__TITLE__", html.escape(title.group(1) if title else "Resume"))
+                .replace("__BODY__", to_html(markdown)))
+    html_path.write_text(page, encoding="utf-8")
+    failure = make_pdf(html_path, pdf_path)
+    return {"source": show(source), "md": show(md_path), "html": show(html_path),
+            "pdf": "" if failure else show(pdf_path), "failure": failure}
 
 
 def main():
@@ -205,40 +237,20 @@ def main():
     parser.add_argument("--file", type=Path, help="export this Markdown file instead")
     args = parser.parse_args()
 
-    source = args.file or pick_source(args.company)
-    if not source.exists():
-        sys.exit(f"Resume not found: {source}")
-    raw = source.read_text(encoding="utf-8")
-    if "Empty on purpose" in raw:
-        sys.exit(f"{show(source)} is still the placeholder. Run `setup` first.")
-
-    markdown = clean_markdown(raw)
-    title = re.search(r"^#\s+(.+)$", markdown, flags=re.M)
-    name = re.sub(r"[^A-Za-z0-9]+", "-", title.group(1)).strip("-") if title else ""
-    stem = f"{name}-Resume" if name and name.lower() != "resume" else "Resume"
-
-    folder = OUTPUT / (args.company or "general")
-    folder.mkdir(parents=True, exist_ok=True)
-    md_path, html_path, pdf_path = (folder / f"{stem}{ext}" for ext in (".md", ".html", ".pdf"))
-
-    md_path.write_text(markdown, encoding="utf-8")
-    page = (PAGE.replace("__PAPER__", "A4" if args.paper == "a4" else "Letter")
-                .replace("__TITLE__", html.escape(title.group(1) if title else "Resume"))
-                .replace("__BODY__", to_html(markdown)))
-    html_path.write_text(page, encoding="utf-8")
-
-    print(f"Source:   {show(source)}")
-    print(f"Markdown: {show(md_path)}")
-    print(f"HTML:     {show(html_path)}")
-    failure = make_pdf(html_path, pdf_path)
-    made_pdf = not failure
-    if made_pdf:
-        print(f"PDF:      {show(pdf_path)}")
+    try:
+        result = export_resume(args.company, args.paper, args.file)
+    except ExportError as error:
+        sys.exit(str(error))
+    print(f"Source:   {result['source']}")
+    print(f"Markdown: {result['md']}")
+    print(f"HTML:     {result['html']}")
+    if result["pdf"]:
+        print(f"PDF:      {result['pdf']}")
     else:
-        print(f"PDF:      not created: {failure}.")
+        print(f"PDF:      not created: {result['failure']}.")
         print("          Open the HTML file in any browser and use Print > Save as PDF.")
     if args.open:
-        webbrowser.open((pdf_path if made_pdf else html_path).as_uri())
+        webbrowser.open((ROOT / (result["pdf"] or result["html"])).as_uri())
 
 
 if __name__ == "__main__":

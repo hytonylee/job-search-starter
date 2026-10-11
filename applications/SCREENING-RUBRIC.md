@@ -17,17 +17,18 @@ Count the posting's **required** items only. Ignore "nice to have."
 | Required items I meet with evidence | Decision |
 |---|---|
 | 70% or more | Apply today |
-| 50 to 69% | Apply if the missing items are already in `weak-spots.md` and I am working on them |
-| Under 50% | Skip, and log the missing items in `weak-spots.md` anyway |
+| 50 to 69% | Apply if the missing items are already in `progress/weak-spots.md` and I am working on them |
+| Under 50% | Skip, and log the missing items in `progress/weak-spots.md` anyway |
 
 ## Signals worth a second look
 
-- The posting names the actual stack instead of listing every tool that exists
+- The posting names the actual tools and work instead of listing everything that exists
 - A named hiring manager or team
 - Posted in the last 7 days
 
 ## Signals to be careful with
 
 - "DevOps" that is really one person covering IT support, security and development
+- A long list of every cloud and tool with no sign of which ones they actually run
 - No salary range and no named team
 - Reposted every few weeks

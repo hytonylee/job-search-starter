@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Search</title>
+<style>
+  :root { --bg:#f6f6f3; --card:#fff; --text:#1c1c1a; --muted:#66665f; --line:#e2e2dc; --accent:#1f5fbf; --accent-text:#fff;
+          --warn:#a04a00; --warn-bg:#fdf0d5; --ok:#17653a; --ok-bg:#dcf5e5; --off:#66665f; --off-bg:#ebebe6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161615; --card:#1f1f1d; --text:#ecece8; --muted:#a3a39c; --line:#35352f; --accent:#7fb0ff; --accent-text:#10213d;
+            --warn:#fcd34d; --warn-bg:#453208; --ok:#86efac; --ok-bg:#0f3d22; --off:#a3a39c; --off-bg:#2a2a27; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:14px 16px 0; max-width:1100px; margin:0 auto; }
+  header h1 { font-size:20px; margin:0; }
+  header .spacer { flex:1; }
+  nav { display:flex; gap:4px; overflow-x:auto; padding:12px 16px 0; max-width:1100px; margin:0 auto; border-bottom:1px solid var(--line); }
+  nav button { border:0; background:none; color:var(--muted); font:inherit; padding:8px 12px; cursor:pointer;
+               border-bottom:2px solid transparent; white-space:nowrap; }
+  nav button[aria-selected="true"] { color:var(--text); border-bottom-color:var(--accent); font-weight:600; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+  h2 { font-size:17px; margin:26px 0 10px; } h2:first-child { margin-top:0; }
+  h3 { font-size:15px; margin:18px 0 6px; }
+  p { margin:0 0 10px; } .muted { color:var(--muted); } .small { font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; }
+  .cards { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 16px; min-width:96px; }
+  .stat b { display:block; font-size:24px; line-height:1.2; } .stat span { color:var(--muted); font-size:13px; }
+  .wrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:14px; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); white-space:nowrap; }
+  tr:last-child td { border-bottom:0; } tr.closed td { color:var(--muted); }
+  .pill { display:inline-block; padding:1px 9px; border-radius:99px; font-size:13px; white-space:nowrap; color:var(--ok); background:var(--ok-bg); }
+  .pill.closed { color:var(--off); background:var(--off-bg); } .pill.warn { color:var(--warn); background:var(--warn-bg); }
+  button.btn, select, input[type=number] { font:inherit; padding:7px 14px; border-radius:8px; border:1px solid var(--line);
+               background:var(--card); color:var(--text); }
+  button.btn { cursor:pointer; } button.btn.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:600; }
+  button.btn:disabled { opacity:.5; cursor:default; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  a { color:var(--accent); }
+  .roles { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px; margin-bottom:12px; }
+  .roles label { display:flex; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--card); }
+  .roles label:has(input:checked) { border-color:var(--accent); }
+  .check { list-style:none; padding:0; margin:0; } .check li { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .check li:last-child { border-bottom:0; } .check .mark { width:22px; text-align:center; font-weight:700; color:var(--muted); }
+  .check li.done .mark { color:var(--ok); } .check li.done .text { color:var(--muted); }
+  .notice { padding:10px 14px; border-radius:8px; background:var(--warn-bg); color:var(--warn); margin:10px 0; }
+  .notice.ok { background:var(--ok-bg); color:var(--ok); }
+  .split { display:grid; grid-template-columns:220px 1fr; gap:16px; align-items:start; }
+  @media (max-width: 720px) { .split { grid-template-columns:1fr; } }
+  .list { display:flex; flex-direction:column; gap:4px; }
+  .list button { text-align:left; border:1px solid transparent; background:none; color:var(--text); font:inherit; padding:7px 10px; border-radius:8px; cursor:pointer; }
+  .list button:hover { background:var(--card); } .list button[aria-current="true"] { background:var(--card); border-color:var(--line); font-weight:600; }
+  .doc { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px; min-height:120px; overflow-wrap:anywhere; }
+  .doc h1 { font-size:20px; margin:0 0 8px; } .doc h2 { font-size:16px; margin:20px 0 8px; } .doc ul { padding-left:20px; margin:0 0 10px; }
+  .doc .wrap { border-radius:8px; } .doc code, .kw { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:13px; background:var(--off-bg); padding:1px 6px; border-radius:5px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  pre { white-space:pre-wrap; margin:0; font:13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  .kwlist { display:grid; grid-template-columns:max-content 1fr auto; gap:6px 14px; align-items:center; }
+  @media (max-width: 720px) { .kwlist { grid-template-columns:1fr auto; } .kwlist .about { grid-column:1 / -1; margin-top:-4px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Search</h1>
+  <span class="pill closed" id="role-badge">loading</span>
+  <span class="spacer"></span>
+  <button class="btn" id="refresh">Refresh</button>
+</header>
+<nav role="tablist" aria-label="Sections" id="nav"></nav>
+<main id="main"><p class="muted">Loading…</p></main>
+
+<script>
+const TOKEN = "__TOKEN__";
+const TABS = [["start", "Start"], ["pipeline", "Pipeline"], ["applications", "Applications"],
+              ["prep", "Prep"], ["progress", "Progress"], ["tools", "Tools"]];
+let S = null;                      // server state
+let ui = { tab: location.hash.slice(1) || "start", company: null, file: null, doc: null, hideClosed: false };
+
+function el(tag, props = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key === "html") node.innerHTML = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    node.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return node;
+}
+
+async function api(path, body) {
+  const options = body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Token": TOKEN }, body: JSON.stringify(body) } : {};
+  const response = await fetch(path, options);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+
+function copyButton(text) {
+  const button = el("button", { class: "btn small", onclick: async () => {
+    try { await navigator.clipboard.writeText(text); button.textContent = "Copied"; }
+    catch { button.textContent = "Select and copy"; }
+    setTimeout(() => { button.textContent = "Copy"; }, 1500);
+  } }, "Copy");
+  return button;
+}
+
+function table(headers, rows, rowClass) {
+  return el("div", { class: "wrap" }, el("table", {},
+    el("thead", {}, el("tr", {}, headers.map(h => el("th", {}, h)))),
+    el("tbody", {}, rows.map((cells, i) => el("tr", { class: rowClass ? rowClass(i) : null }, cells.map(c => el("td", {}, c)))))));
+}
+
+function stagePill(row) { return el("span", { class: "pill" + (row.closed ? " closed" : "") }, row.stage || "no stage"); }
+
+/* ---------- Start ---------- */
+function viewStart() {
+  const message = el("div");
+  const pick = id => (S.roles.find(r => r.id === id) || {}).label || id;
+  async function apply(force) {
+    const id = document.querySelector("input[name=role]:checked")?.value;
+    if (!id) return;
+    message.replaceChildren();
+    try {
+      const result = await api("/api/role", { id, force });
+      if (!result.applied) {
+        message.append(el("div", { class: "notice" },
+          el("p", {}, "You have edited these files, and switching role replaces them: " + result.edited.join(", ") + "."),
+          el("p", {}, "They will be backed up to output/role-backup/ first."),
+          el("button", { class: "btn", onclick: () => apply(true) }, "Back up and switch to " + pick(id))));
+        return;
+      }
+      await load();
+      document.querySelector("#role-msg")?.append(el("div", { class: "notice ok" },
+        "Role set to " + pick(id) + "." + (result.backup ? " Your edited files are in " + result.backup + "/." : "")));
+    } catch (error) { message.append(el("div", { class: "notice" }, error.message)); }
+  }
+  const done = S.setup.filter(s => s.done).length;
+  return [
+    el("h2", {}, "1. Choose your role"),
+    el("div", { class: "card" },
+      el("p", { class: "muted" }, "This sets the experience table in your profile, the practice exercise, and the screening rubric."),
+      el("div", { class: "roles", role: "radiogroup", "aria-label": "Role" }, S.roles.map(r =>
+        el("label", {}, el("input", { type: "radio", name: "role", value: r.id, checked: r.id === S.role }), r.label))),
+      el("button", { class: "btn primary", onclick: () => apply(false) }, "Use this role"),
+      message, el("div", { id: "role-msg" })),
+    el("h2", {}, `2. Get set up (${done} of ${S.setup.length} done)`),
+    el("div", { class: "card" }, el("ul", { class: "check" }, S.setup.map(step =>
+      el("li", { class: step.done ? "done" : null },
+        el("span", { class: "mark", "aria-hidden": "true" }, step.done ? "✓" : "○"),
+        el("div", {}, el("div", { class: "text" }, step.text, el("span", { class: "muted" }, step.done ? " (done)" : "")),
+          !step.done && el("div", { class: "muted small" }, step.hint)))))),
+    el("h2", {}, "3. Do the work in your AI tool"),
+    el("div", { class: "card" },
+      el("p", {}, "The coaching happens in Codex, Cursor or Claude Code, opened on this folder. Type a keyword there. This page is where you read the results."),
+      el("p", { class: "muted small" }, "The full list is under Tools."))
+  ];
+}
+
+/* ---------- Pipeline ---------- */
+function pipelineTable(rows) {
+  return table(["Company", "Role", "Stage", "Applied", "Last contact", "Next action", "Due", "Attention"],
+    rows.map(r => [el("b", {}, r.company), r.role, stagePill(r), r.applied, r["last contact"], r["next action"], r.due,
+                   r.flag ? el("span", { class: "pill warn" }, r.flag) : ""]),
+    i => rows[i].closed ? "closed" : null);
+}
+function viewPipeline() {
+  const p = S.pipeline;
+  if (!p.rows.length) return [el("div", { class: "card" }, el("p", {}, "No applications yet."),
+    el("p", { class: "muted" }, "Type ", el("span", { class: "kw" }, "apply: [company]"), " in your AI tool and paste a posting. It will show up here."),
+    p.problems.map(x => el("div", { class: "notice" }, x)))];
+  const flagged = p.rows.filter(r => r.flag);
+  const shown = ui.hideClosed ? p.rows.filter(r => !r.closed) : p.rows;
+  return [
+    el("div", { class: "cards" },
+      el("div", { class: "stat" }, el("b", {}, p.rows.length), el("span", {}, "Total")),
+      el("div", { class: "stat" }, el("b", {}, p.rows.filter(r => !r.closed).length), el("span", {}, "Active")),
+      p.counts.map(([stage, n]) => el("div", { class: "stat" }, el("b", {}, n), el("span", {}, stage)))),
+    flagged.length ? [el("h2", {}, `Needs attention (${flagged.length})`), pipelineTable(flagged)] : null,
+    p.problems.length ? el("div", { class: "notice" }, el("b", {}, "Rows to fix in applications/PIPELINE.md"),
+      el("ul", {}, p.problems.map(x => el("li", {}, x)))) : null,
+    el("h2", {}, "All applications"),
+    el("div", { class: "row" }, el("label", {}, el("input", { type: "checkbox", checked: ui.hideClosed,
+      onchange: e => { ui.hideClosed = e.target.checked; render(); } }), " Hide closed")),
+    pipelineTable(shown)
+  ];
+}
+
+/* ---------- document reader shared by Applications and Prep ---------- */
+function docPane(path) {
+  const pane = el("div", { class: "doc" }, el("p", { class: "muted" }, "Loading…"));
+  api("/api/file?path=" + encodeURIComponent(path))
+    .then(d => pane.replaceChildren(el("div", { html: d.html || "<p class='muted'>This file is empty.</p>" }),
+                                    el("p", { class: "muted small" }, d.path)))
+    .catch(error => pane.replaceChildren(el("p", { class: "muted" }, error.message)));
+  return pane;
+}
+
+/* ---------- Applications ---------- */
+function viewApplications() {
+  const apps = S.applications;
+  if (!apps.length) return [el("div", { class: "card" }, el("p", {}, "No company folders yet."),
+    el("p", { class: "muted" }, "Each ", el("span", { class: "kw" }, "apply: [company]"), " creates one with the posting, your fit, the tailored resume and interview notes."))];
+  const app = apps.find(a => a.name === ui.company) || apps[0];
+  const file = app.files.includes(ui.file) ? ui.file : (app.files.includes("fit.md") ? "fit.md" : app.files[0]);
+  const row = S.pipeline.rows.find(r => r.company.toLowerCase().replace(/[^a-z0-9]+/g, "-") === app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+  const result = el("div");
+  async function exportResume(button) {
+    button.disabled = true; result.replaceChildren(el("p", { class: "muted" }, "Exporting…"));
+    try {
+      const r = await api("/api/export", { company: app.name });
+      result.replaceChildren(el("div", { class: "notice ok" }, "Exported. ",
+        r.pdf ? el("a", { href: "/" + r.pdf, target: "_blank" }, "Open PDF") : el("a", { href: "/" + r.html, target: "_blank" }, "Open HTML"),
+        r.pdf ? "" : " (no PDF: " + r.failure + ". Open the HTML and use Print, then Save as PDF.)"));
+    } catch (error) { result.replaceChildren(el("div", { class: "notice" }, error.message)); }
+    button.disabled = false;
+  }
+  return [el("div", { class: "split" },
+    el("div", { class: "list", role: "list", "aria-label": "Companies" }, apps.map(a =>
+      el("button", { "aria-current": a.name === app.name ? "true" : null, onclick: () => { ui.company = a.name; ui.file = null; render(); } }, a.name))),
+    el("div", {},
+      el("div", { class: "row" }, el("h2", { style: "margin:0" }, app.name), row ? stagePill(row) : null,
+        row && row.flag ? el("span", { class: "pill warn" }, row.flag) : null),
+      row ? el("p", { class: "muted" }, [row.role, row["next action"] && "Next: " + row["next action"], row.due && "due " + row.due].filter(Boolean).join(" · ")) : null,
+      el("div", { class: "row" },
+        app.files.includes("resume.md") ? el("button", { class: "btn", onclick: e => exportResume(e.target) }, "Export resume to PDF") : null,
+        app.pdf ? el("a", { href: "/" + app.pdf, target: "_blank" }, "Open last exported PDF") : null),
+      result,
+      app.files.length ? el("div", { class: "tabs" }, app.files.map(f =>
+        el("button", { class: "btn" + (f === file ? " primary" : ""), onclick: () => { ui.file = f; render(); } }, f.replace(/\.md$/, "")))) : el("p", { class: "muted" }, "This folder has no files yet."),
+      file ? docPane(`applications/${app.name}/${file}`) : null))];
+}
+
+/* ---------- Prep ---------- */
+function viewPrep() {
+  const docs = S.prep.concat(S.questions.length ? [{ title: "Questions I was asked", path: "#questions" }] : []);
+  const current = docs.find(d => d.path === ui.doc) || docs[0];
+  if (!current) return [el("div", { class: "card" }, "Nothing to read yet.")];
+  const body = current.path === "#questions"
+    ? el("div", { class: "doc" }, S.questions.map(q => [el("h1", {}, q.company), el("div", { html: q.html })]))
+    : docPane(current.path);
+  return [el("p", { class: "muted" }, "Your own material, to read before an interview. To change any of it, edit the file or ask your AI tool."),
+    el("div", { class: "split" },
+      el("div", { class: "list", role: "list", "aria-label": "Documents" }, docs.map(d =>
+        el("button", { "aria-current": d.path === current.path ? "true" : null, onclick: () => { ui.doc = d.path; render(); } }, d.title))),
+      body)];
+}
+
+/* ---------- Progress ---------- */
+function viewProgress() {
+  const rows = S.pipeline.rows, practice = S.practice;
+  const reached = stages => rows.filter(r => stages.includes(r.stage)).length;
+  const scores = practice.map(p => parseFloat(p.score)).filter(n => !isNaN(n));
+  const average = list => list.length ? (list.reduce((a, b) => a + b, 0) / list.length).toFixed(1) : "–";
+  return [
+    el("div", { class: "cards" },
+      el("div", { class: "stat" }, el("b", {}, rows.filter(r => r.stage !== "Drafted").length), el("span", {}, "Applied")),
+      el("div", { class: "stat" }, el("b", {}, reached(["Screen", "Technical", "Final", "Offer"])), el("span", {}, "In interviews")),
+      el("div", { class: "stat" }, el("b", {}, reached(["Offer"])), el("span", {}, "Offers")),
+      el("div", { class: "stat" }, el("b", {}, practice.length), el("span", {}, "Practice sessions")),
+      el("div", { class: "stat" }, el("b", {}, average(scores.slice(0, 5))), el("span", {}, "Avg score, last 5")),
+      el("div", { class: "stat" }, el("b", {}, average(scores)), el("span", {}, "Avg score, all"))),
+    el("h2", {}, "Practice sessions"),
+    practice.length
+      ? table(["Date", "Mode", "Topic", "Score", "Weakest point"], practice.map(p => [p.date, p.mode, p.topic, p.score, p["weakest point"]]))
+      : el("div", { class: "card muted" }, "None logged yet. Each ", el("span", { class: "kw" }, "drill"), ", ", el("span", { class: "kw" }, "practice"), " and ", el("span", { class: "kw" }, "mock interview"), " adds a line here."),
+    el("h2", {}, "Recent sessions"),
+    S.log.length ? S.log.map(entry => el("div", { class: "doc", style: "margin-bottom:10px", html: entry.html }))
+                 : el("div", { class: "card muted" }, "No daily-log entries yet. Your AI tool writes one at the end of each session.")
+  ];
+}
+
+/* ---------- Tools ---------- */
+function viewTools() {
+  const exportResult = el("div"), archiveResult = el("div");
+  const paper = el("select", { "aria-label": "Paper size" }, el("option", { value: "letter" }, "US Letter"), el("option", { value: "a4" }, "A4"));
+  const days = el("input", { type: "number", min: "1", value: "30", style: "width:90px", "aria-label": "Days to keep" });
+  const applyButton = el("button", { class: "btn", disabled: true, onclick: () => runArchive(true) }, "Archive now");
+  async function exportBase() {
+    exportResult.replaceChildren(el("p", { class: "muted" }, "Exporting…"));
+    try {
+      const r = await api("/api/export", { paper: paper.value });
+      exportResult.replaceChildren(el("div", { class: "notice ok" }, "Exported. ",
+        r.pdf ? el("a", { href: "/" + r.pdf, target: "_blank" }, "Open PDF") : el("a", { href: "/" + r.html, target: "_blank" }, "Open HTML"),
+        r.pdf ? "" : " (no PDF: " + r.failure + ". Open the HTML and use Print, then Save as PDF.)"));
+    } catch (error) { exportResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
+  }
+  async function runArchive(apply) {
+    try {
+      const r = await api("/api/archive", { days: days.value, apply });
+      archiveResult.replaceChildren(el("div", { class: "card" }, el("pre", {}, r.report.join("\n")),
+        el("p", { class: "muted small", style: "margin-top:8px" }, apply ? "Done." : "Preview only. Nothing has changed yet.")));
+      applyButton.disabled = apply;
+      if (apply) load();
+    } catch (error) { archiveResult.replaceChildren(el("div", { class: "notice" }, error.message)); }
+  }
+  return [
+    el("h2", {}, "Export your base resume"),
+    el("div", { class: "card" }, el("div", { class: "row" }, paper, el("button", { class: "btn primary", onclick: exportBase }, "Export to PDF")),
+      el("p", { class: "muted small" }, "Exports profile/resume.md. Tailored resumes are exported from the Applications tab."), exportResult),
+    el("h2", {}, "Archive old entries"),
+    el("div", { class: "card" }, el("div", { class: "row" }, "Keep the last", days, "days",
+        el("button", { class: "btn primary", onclick: () => runArchive(false) }, "Preview"), applyButton),
+      el("p", { class: "muted small" }, "Moves older daily-log entries and closed applications into _archive folders. Preview first."), archiveResult),
+    el("h2", {}, "Keywords for your AI tool"),
+    el("div", { class: "card" }, el("div", { class: "kwlist" }, S.keywords.map(([keyword, about]) => [
+      el("span", {}, el("span", { class: "kw" }, keyword)), el("span", { class: "about muted" }, about), copyButton(keyword.replace(/: \[.*\]$/, ": "))]))),
+    el("h2", {}, "Scripts for the terminal"),
+    S.scripts.map(s => el("div", { class: "card" }, el("b", {}, s.name), el("span", { class: "muted" }, "  " + s.summary),
+      el("pre", { style: "margin-top:8px" }, s.commands.map(([command, about]) => command + (about ? "   # " + about : "")).join("\n"))))
+  ];
+}
+
+const VIEWS = { start: viewStart, pipeline: viewPipeline, applications: viewApplications, prep: viewPrep, progress: viewProgress, tools: viewTools };
+
+function render() {
+  if (!VIEWS[ui.tab]) ui.tab = "start";
+  document.querySelector("#nav").replaceChildren(...TABS.map(([id, label]) =>
+    el("button", { role: "tab", "aria-selected": String(id === ui.tab), onclick: () => { ui.tab = id; history.replaceState(null, "", "#" + id); render(); } }, label)));
+  const current = S.roles.find(r => r.id === S.role);
+  document.querySelector("#role-badge").textContent = current ? current.label : "No role chosen";
+  document.querySelector("#main").replaceChildren(...VIEWS[ui.tab]().flat(3).filter(Boolean));
+}
+
+async function load() {
+  try { S = await api("/api/state"); render(); }
+  catch (error) {
+    document.querySelector("#main").replaceChildren(el("div", { class: "notice" },
+      "Cannot reach the dashboard. Start it again with: python3 scripts/app.py (" + error.message + ")"));
+  }
+}
+document.querySelector("#refresh").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>

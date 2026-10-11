@@ -6,7 +6,7 @@ A folder of plain text files that turns an AI coding tool (Codex, Cursor, Claude
 
 I built the original version of this for my own job search as a product engineer, and kept changing it as I learned what worked. This repo is the reusable part of that setup with everything personal removed.
 
-Right now it is configured for a friend looking for a **DevOps** position. The method works for other roles, but a few files assume DevOps. If you want to use it, follow the instructions below and **change the target role first** so it suits you. See [Change it to your role](#change-it-to-your-role).
+Right now it is configured for a friend looking for a **DevOps** position, and it ships with role packs for frontend, backend, product, design and data as well. If you want to use it, follow the instructions below and **choose your role first** so it suits you. See [Choose your role](#choose-your-role).
 
 ## How it works
 
@@ -29,7 +29,9 @@ modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
 progress/            daily log and the ranked gap list
 notes/               long-term memory, one fact per file
-scripts/             pipeline viewer, resume export, archiving, help
+roles/               ready-made role packs: devops, frontend, backend, product, design, data
+scripts/             dashboard, pipeline viewer, resume export, archiving, role picker, help
+ui/                  the dashboard page
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
@@ -44,24 +46,44 @@ Only `AGENTS.md` and `README.md` sit at the top level. Source files live in thei
    - **Codex:** run `codex` inside the folder. It reads `AGENTS.md` automatically.
    - **Cursor:** open the folder and use Agent mode. It reads `AGENTS.md` automatically.
    - **Claude Code:** run `claude` inside the folder. Create a `CLAUDE.md` containing the single line `@AGENTS.md`.
-5. If you are not looking for a DevOps role, do [Change it to your role](#change-it-to-your-role) now.
-6. Type `setup`.
+5. Start the dashboard with `python3 scripts/app.py` and [choose your role](#choose-your-role) on the Start tab.
+6. Type `setup` in your AI tool.
 
-## Change it to your role
+## The dashboard
 
-Seven places mention DevOps. Edit them by hand, or ask your AI tool: "Adapt this repo for a [your role] job search. Change only the role-specific parts listed in the README."
+A local web page for reading your material, so you are not limited to the terminal.
 
-| File | What to change |
+```bash
+python3 scripts/app.py
+```
+
+It opens in your browser. It runs only on your own computer, sends nothing anywhere, and stops when you press Ctrl+C.
+
+| Tab | What you see |
 |---|---|
-| `AGENTS.md` | The first line says "senior DevOps interviewer." Put your target role's interviewer |
-| `profile/profile.md` | The experience table rows (cloud, IaC, containers...). Use the skill areas of your role |
-| `modes/troubleshoot.md` | Broken-system scenarios. Replace with your role's live exercise: a coding task, a product case, a portfolio critique, a mock sales call |
-| `modes/gaps.md` | "A rep means build or break something." Replace with producing your role's real work: a feature, a PRD, a campaign brief |
-| `modes/mock-interview.md` | Step 3 points to the troubleshooting scenario. Point it at your replacement |
-| `applications/SCREENING-RUBRIC.md` | The on-call hard stop and the DevOps warning sign. Use your role's equivalents |
-| `progress/weak-spots.md` | The commented example row uses a Kubernetes gap. Replace or delete it |
+| **Start** | The role picker and a setup checklist that ticks itself off |
+| **Pipeline** | Counts per stage, what needs attention, every application |
+| **Applications** | One company at a time: the posting, your fit, the tailored resume, interview notes, and a PDF export button |
+| **Prep** | Your profile, resume, gap list, practice exercise and every interview question you have logged, formatted for reading before an interview |
+| **Progress** | Applications sent, interviews reached, practice scores over time, and recent sessions |
+| **Tools** | Resume export, archiving with a preview, and every keyword with a copy button |
 
-Everything else is role-neutral.
+The page reads your files and shows them. The coaching itself still happens in your AI tool: you type a keyword there, it updates the files, and you press **Refresh** here. To change a document, edit the file or ask the AI.
+
+## Choose your role
+
+Six role packs are included: **devops** (the default), **frontend**, **backend**, **product**, **design** and **data**. Pick one on the dashboard's Start tab, or in the terminal:
+
+```bash
+python3 scripts/role.py            # list roles and show the current one
+python3 scripts/role.py product    # switch
+```
+
+Choosing a role replaces three files: the experience table in `profile/profile.md`, the live exercise in `modes/practice.md`, and `applications/SCREENING-RUBRIC.md`. The exercise differs by role: a troubleshooting scenario for DevOps, live coding for frontend, a product case for product, a portfolio walkthrough for design, a SQL case for data. Everything else is role-neutral.
+
+Choose before you fill anything in. If you switch later, any of the three files you have edited is backed up to `output/role-backup/` first, and you will need to redo your profile.
+
+**Your role is not listed?** Copy a folder in `roles/`, rename it, and edit its three files. It appears in the picker straight away.
 
 ## First session, 60 to 90 minutes
 
@@ -154,11 +176,15 @@ Daily-log entries older than the cut-off move to `progress/_archive/daily-log-<y
 - **The AI can still be wrong.** It can misread a posting or score an answer too kindly. Treat scores as a prompt to think, not a verdict.
 - **Archiving is manual and by date only.** Nothing reminds you to run it. It skips a closed application with no valid date, and it never moves company folders or old notes.
 - **Your data goes to your AI provider.** Whatever the tool reads is sent to that provider under its terms. Check them before adding anything sensitive.
-- **It needs some comfort with a code editor or terminal.** A non-technical user will want someone beside them for the first session.
+- **You still need a terminal once or twice.** The dashboard is started from one, and the AI tool is opened on the folder. A non-technical user will want someone beside them for the first session.
+- **The dashboard is for reading.** Apart from the role picker, resume export and archiving, it changes nothing. You cannot edit a document, add an application or run a coaching session from it.
+- **The dashboard and role packs are new.** The page logic was tested with sample data but has had little real use. The five non-DevOps role packs were written from general knowledge of those interviews, not from a real search in each role, so expect to adjust them.
+- **Progress numbers depend on the AI logging them.** Practice scores appear only if the AI adds the row to `progress/practice-log.md` at the end of a session.
 
 ## Ideas for improvement
 
-- **Role packs.** Ready-made `profile/profile.md`, practice mode and rubric for other roles (frontend, backend, product, design, data) so no hand-editing is needed.
+- **More role packs.** Product marketing, UX research, engineering management, QA, customer success, sales. Better still, packs reviewed by someone who hires for that role.
+- **Editing from the dashboard.** Update a pipeline row, tick a rubric item or add a note without opening a file.
 - **A richer pipeline view.** Compute the weekly numbers and reply rate automatically, flag silence after interviews, and chart applications over time.
 - **Resume templates.** A choice of layouts, a page-count warning, and a `.docx` export for employers that ask for Word.
 - **Native commands per tool.** Slash commands for Cursor and Codex that wrap each mode, so the right file is always loaded.
