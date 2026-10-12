@@ -2,6 +2,42 @@
 
 A folder of plain text files that turns an AI coding tool (Codex, Cursor or Claude Code) into a job-search coach that remembers your history. The AI reads `AGENTS.md` at the start of every session, so it knows who you are, where every application stands, and which gaps real postings have exposed. A local dashboard lets you read all of it in your browser.
 
+<nav class="site-nav" aria-label="On this page">
+<div class="site-nav-inner">
+<p class="site-nav-kicker"><strong>On this page</strong></p>
+<p class="site-nav-actions"><a href="https://github.com/hytonylee/job-search-starter/generate">Use this template</a> · <a href="https://github.com/hytonylee/job-search-starter">Source</a></p>
+<p class="site-nav-label"><strong>Use it</strong></p>
+<ul class="no-list">
+<li><a href="#what-it-looks-like">What it looks like</a></li>
+<li><a href="#where-this-came-from">Where this came from</a></li>
+<li><a href="#before-you-start">Before you start</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#how-it-works">How it works</a></li>
+<li><a href="#the-first-session">The first session</a></li>
+<li><a href="#every-day-after">Every day after</a></li>
+<li><a href="#keywords">Keywords</a></li>
+</ul>
+<p class="site-nav-label"><strong>Look something up</strong></p>
+<ul class="no-list">
+<li><a href="#the-dashboard">The dashboard</a></li>
+<li><a href="#your-pipeline">Your pipeline</a></li>
+<li><a href="#your-target-roles">Your target roles</a></li>
+<li><a href="#company-research">Company research</a></li>
+<li><a href="#interview-stories">Interview stories</a></li>
+<li><a href="#three-things-that-make-it-work">Three things that make it work</a></li>
+<li><a href="#scripts-for-the-terminal">Scripts, for the terminal</a></li>
+<li><a href="#limitations">Limitations</a></li>
+</ul>
+<p class="site-nav-label"><strong>Contribute</strong></p>
+<ul class="no-list">
+<li><a href="#what-is-in-the-repo">What is in the repo</a></li>
+<li><a href="#ideas-for-improvement">Ideas for improvement</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#questions">Questions</a></li>
+</ul>
+</div>
+</nav>
+
 ## What it looks like
 
 These show the dashboard with the built-in example, a fictional candidate. Nothing in them is real.
@@ -218,6 +254,9 @@ Stories are stored as short notes to speak from, not scripts to memorise, becaus
 ```
 AGENTS.md            the index the AI reads every session
 README.md            this file
+_config.yml          publishes this file as the public page
+_layouts/            the layout of that page
+assets/              the styles of that page
 profile/             who you are: target roles, profile, master resume, a resume version per role, interview stories, LinkedIn text
 modes/               one instruction file per keyword
 applications/        the pipeline, the screening rubric, one folder per company
@@ -233,7 +272,7 @@ docs/                screenshots used in this README
 output/              generated files: pipeline page, exported resumes (not committed)
 ```
 
-Only `AGENTS.md` and `README.md` sit at the top level, apart from git's own dotfiles and, if you use Claude Code, a one-line `CLAUDE.md` pointer. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
+Only `AGENTS.md` and `README.md` sit at the top level, apart from git's own dotfiles, the files that publish this page (`_config.yml`, `_layouts/`, `assets/`), and, if you use Claude Code, a one-line `CLAUDE.md` pointer. Those three paths are the public site. A personal copy can ignore them. Source files live in their folders, and anything a script generates goes to `output/`. Old entries move to `_archive/` folders inside `progress/` and `applications/`.
 
 **Keeping it cheap to run.** `AGENTS.md` is loaded into every session, so it stays a short index of under 500 words: the keywords on one line, where files live, and seven rules. Each keyword has its own file in `modes/`, which the AI opens only when you type that keyword. Keep it that way: new detail goes in a mode file, `profile/profile.md` or `notes/`, never in `AGENTS.md`. Start a fresh session for each task instead of running one long one.
 
@@ -351,7 +390,32 @@ Checks the scripts against temporary copies, never your files. Run it after chan
 - **More examples.** A second fictional candidate in an engineering role.
 - **Tested notes per tool.** What actually happens in Codex and Cursor, once someone has run it there.
 
-If you improve it, a pull request to the template is welcome. Keep your personal files out of it.
+How to send a change is in [Contributing](#contributing).
+
+## Contributing
+
+Use your own copy for your search. Send improvements to this template as a pull request, and leave your personal files out of it.
+
+**A change belongs in one place.**
+
+| Change | Where |
+|---|---|
+| A keyword's steps | `modes/`, and the keyword line in `AGENTS.md`. Name the file after the keyword, with dashes for spaces, and start it with a `Purpose:` line. `python3 scripts/commands.py` builds its list from those |
+| A kind of role | `roles/`, or a new folder next to the existing ones. Say in the pull request whether you have hired or interviewed for that role |
+| The dashboard or a script | `ui/` and `scripts/`. Then run `python3 -m unittest discover -s tests`. The tests use temporary copies and do not read your files |
+| This page | `README.md`. The public site is this file |
+| The example candidate | `example/`. It stays fictional |
+
+`AGENTS.md` stays a short index. New detail goes in the mode file, not there.
+
+**Before you open the pull request**
+
+- Fork the repository and branch from `main`.
+- Do not commit a resume, a pipeline, a salary, interview notes, or anything from an employer.
+- Run the tests if you touched a script.
+- Say what you changed and how you checked it.
+
+The list under [Ideas for improvement](#ideas-for-improvement) is a starting point. A small fix is as welcome as one of those. If you are unsure a change belongs here, open an issue, or use the links under [Questions](#questions).
 
 ## Questions
 

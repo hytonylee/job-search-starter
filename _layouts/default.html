@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en-US" }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+{% seo %}
+    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
+    {% include head-custom.html %}
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 site-wrap">
+      <header class="site-header">
+        <a class="site-name" href="{{ site.github.repository_url | default: 'https://github.com/hytonylee/job-search-starter' }}">job-search-starter</a>
+        <nav class="site-actions" aria-label="Repository">
+          <a href="https://github.com/hytonylee/job-search-starter/generate">Use this template</a>
+          <a href="{{ site.github.repository_url | default: 'https://github.com/hytonylee/job-search-starter' }}">Source</a>
+          <a href="#contributing">Contribute</a>
+        </nav>
+      </header>
+
+      <div class="site-body">
+        <div class="markdown-body">
+          {{ content }}
+        </div>
+      </div>
+
+      {% if site.github.private != true and site.github.license %}
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. {% github_edit_link "Improve this page" %}.
+      </div>
+      {% endif %}
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+    <script>
+      (function () {
+        var nav = document.querySelector(".site-nav");
+        var body = document.querySelector(".site-body");
+        if (nav && body && nav.parentNode) {
+          var mq = window.matchMedia("(min-width: 1100px)");
+          var marker = document.createElement("span");
+          marker.hidden = true;
+          nav.parentNode.insertBefore(marker, nav);
+          function placeNav() {
+            if (mq.matches) body.insertBefore(nav, body.firstChild);
+            else marker.parentNode.insertBefore(nav, marker.nextSibling);
+          }
+          placeNav();
+          if (mq.addEventListener) mq.addEventListener("change", placeNav);
+        }
+
+        var links = Array.prototype.slice.call(document.querySelectorAll(".site-nav a[href^='#']"));
+        var pairs = links.map(function (link) {
+          return { link: link, heading: document.getElementById(link.getAttribute("href").slice(1)) };
+        }).filter(function (pair) { return pair.heading; });
+        if (!pairs.length) return;
+
+        function update() {
+          var current = null;
+          pairs.forEach(function (pair) {
+            if (pair.heading.getBoundingClientRect().top <= 120) current = pair;
+          });
+          pairs.forEach(function (pair) {
+            if (pair === current) pair.link.setAttribute("aria-current", "true");
+            else pair.link.removeAttribute("aria-current");
+          });
+        }
+
+        update();
+        document.addEventListener("scroll", update, { passive: true });
+      })();
+    </script>
+  </body>
+</html>
