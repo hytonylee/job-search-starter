@@ -4,3 +4,12 @@ __pycache__/
 # Generated views. Rebuild with: python3 scripts/pipeline.py --html
 output/*
 !output/.gitkeep
+
+# The LinkedIn export is only a local source for setup. It usually contains a phone number and email.
+profile/linkedin-export.pdf
+
+# Secrets. These do not belong in any copy of this folder.
+.env
+.env.*
+*.pem
+credentials.json

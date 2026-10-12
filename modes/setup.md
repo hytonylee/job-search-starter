@@ -6,6 +6,7 @@ The onboarding interview. It sets the project up by asking me questions, one ste
 
 ## How to run it
 
+- Before step 1, if this folder has a git remote, stop. This folder is the search copy, and it is not pushed. Tell me to remove the remote (`git remote remove origin`) before I add anything about myself. Contributing is a different, clean copy of the template, with none of my details. If there is no remote, continue.
 - Before each step, check the files to see whether it is already done. Skip finished steps and tell me which you skipped.
 - Announce each step as "Step N of 7" with one line on why it matters.
 - Ask one question at a time and wait for my answer. Never invent a fact about me. If I do not know, write `[to confirm]`.

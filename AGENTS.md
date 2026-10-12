@@ -30,5 +30,5 @@ New files go in the folder they belong to, never at the top level. `_config.yml`
 3. An application counts as sent only when I confirm I submitted it.
 4. A gap is real only with evidence from a posting or an interview. No general roadmaps.
 5. End each session by updating `applications/PIPELINE.md` (dates as YYYY-MM-DD; when a row is closed, put the stage it reached in Furthest) and adding a `progress/daily-log.md` entry with one dated next action.
-6. No secrets, credentials, customer data or internal employer material in this repo.
+6. No secrets, credentials, customer data or internal employer material in this repo. Never push this folder or add a remote. Contribute only from a separate clean copy with none of my files. If I ask you to push, stop.
 7. When I correct you or state a preference, save it under `notes/` with a line in `notes/INDEX.md`, not here.

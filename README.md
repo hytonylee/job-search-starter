@@ -5,7 +5,7 @@ A folder of plain text files that turns an AI coding tool (Codex, Cursor or Clau
 <nav class="site-nav" aria-label="On this page">
 <div class="site-nav-inner">
 <p class="site-nav-kicker"><strong>On this page</strong></p>
-<p class="site-nav-actions"><a href="https://github.com/hytonylee/job-search-starter/generate">Use this template</a> · <a href="https://github.com/hytonylee/job-search-starter">Source</a></p>
+<p class="site-nav-actions"><a href="https://github.com/hytonylee/job-search-starter/archive/refs/heads/main.zip">Download ZIP</a> · <a href="https://github.com/hytonylee/job-search-starter">Source</a></p>
 <p class="site-nav-label"><strong>Use it</strong></p>
 <ul class="no-list">
 <li><a href="#what-it-looks-like">What it looks like</a></li>
@@ -62,14 +62,13 @@ It began as a setup for a friend looking for a DevOps position and now works for
 
 ## Before you start
 
-You need four things. None of them is included here.
+You need three things. None of them is included here.
 
 | You need | Why | Notes |
 |---|---|---|
 | **An AI coding tool**: [Cursor](https://cursor.com), [Codex](https://openai.com/codex) or [Claude Code](https://claude.com/product/claude-code) | It does the coaching and edits the files | These usually need a paid plan or charge for usage. If you have never used one, Cursor is the easiest to start with, because it is an ordinary app with a chat panel |
 | **Python 3.8 or newer** | It runs the dashboard and the small scripts | Free from [python.org/downloads](https://www.python.org/downloads/). Most Macs and Linux machines already have it. On Windows, tick "Add python.exe to PATH" during the install |
 | **Your LinkedIn profile, or a resume you can paste** | It is the starting point for your resume | |
-| **A GitHub account**, optional | To keep a private backed-up copy | You can also just download the ZIP |
 
 A chat app in a browser is not enough. It cannot see or change the files in this folder, and the whole method depends on the AI working from them.
 
@@ -77,10 +76,7 @@ A chat app in a browser is not enough. It cannot see or change the files in this
 
 ## Quick start
 
-1. **Get your own copy.**
-   - With GitHub: click **Use this template**, create your copy, and **make it private**. It will hold your resume, salary floor and interview notes. Then clone your copy to your computer (GitHub Desktop works if you prefer not to use a terminal).
-   - Without GitHub: click **Code → Download ZIP** and unzip it somewhere you will find again. Nothing is backed up this way, so keep your own copy of the folder.
-   - Either way, work in your own copy, not directly in this repo, so your personal files never end up here.
+1. **Duplicate it for your search.** Click **Code → Download ZIP** and unzip it somewhere you will find again. That folder is your job hunt. Do not push it to a remote: a push sends your resume, salary, and interview notes off your computer. If you cloned the repository instead, remove the remote before you write anything about yourself: `git remote remove origin`.
 2. **Open the dashboard.** In the `start/` folder, double-click `Open dashboard (Mac).command` or `Open dashboard (Windows).bat`. A page opens in your browser. See [The dashboard](#the-dashboard) if it does not.
 3. **Look at the example.** Press **See an example first** to see what a working project looks like, then **Back to my data**.
 4. **Press Start project onboarding.** The box that opens explains how to get an AI tool if you do not have one, shows where this folder is on your computer and how to open it in that tool, and gives you a first message to paste.
@@ -88,7 +84,11 @@ A chat app in a browser is not enough. It cannot see or change the files in this
 
 If you use **Claude Code**, also create a file named `CLAUDE.md` in the folder containing the single line `@AGENTS.md`. Codex and Cursor read `AGENTS.md` without that.
 
-**Do not put in this folder:** passwords, access tokens, customer data, or anything copied from an employer's systems.
+**Do not put in this folder:** passwords, access tokens, customer data, or anything copied from an employer's systems. The AI reads this folder, so listing a file in `.gitignore` does not keep it private.
+
+`.gitignore` keeps a blanket `git add` from including the LinkedIn PDF you save for setup, plus `.env` files and key files. Your name, salary, resume, and interview notes still live in the other files. They stay on your computer because the search folder is never pushed.
+
+To improve the template, use a second, clean copy with none of those details, and open the pull request from that copy. See [Contributing](#contributing).
 
 ## How it works
 
@@ -394,7 +394,7 @@ How to send a change is in [Contributing](#contributing).
 
 ## Contributing
 
-Use your own copy for your search. Send improvements to this template as a pull request, and leave your personal files out of it.
+Your search is one folder, kept on your computer and never pushed. A contribution is a second folder: a clean copy of this template, with no resume, pipeline, salary, or interview notes. Open the pull request from that copy.
 
 **A change belongs in one place.**
 
